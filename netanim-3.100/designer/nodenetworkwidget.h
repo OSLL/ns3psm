@@ -24,6 +24,8 @@
 #include <QtGui/QPushButton>
 #include <QtGui/QTableWidget>
 
+#include <stdint.h>
+
 namespace netanim {
 
 class NodeNetworkWidget : public QWidget

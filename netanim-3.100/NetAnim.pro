@@ -43,7 +43,7 @@ macx {
 # DEFINES +="Q_MOC_OUTPUT_REVISION=62"
 
 ### Uncomment the below line to enable ns-3 related features
-# include(ns3.pro)
+include(ns3.pro)
 
 
 

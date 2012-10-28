@@ -20,6 +20,8 @@
 
 #include <Qt>
 
+#include <stdint.h>
+
 namespace netanim {
 
 class AbstractDesignerItem
