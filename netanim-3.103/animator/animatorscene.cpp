@@ -407,6 +407,21 @@ AnimatorScene::setShowNodeId(bool show)
 }
 
 void
+AnimatorScene::setShowEnergy(bool show)
+{
+
+    m_showEnergy = show;
+
+    for (AnimNodeMgr::AnimNodeMap_t::const_iterator i = AnimNodeMgr::getInstance()->getAnimNodes()->begin();
+     i != AnimNodeMgr::getInstance()->getAnimNodes()->end();
+     ++i)
+    {
+        AnimNode * aNode = i->second;
+        aNode->showEnergy(show);
+    }
+}
+
+void
 AnimatorScene::setCurrentUpdateRate(double updateRate)
 {
     m_currentUpdateRate = updateRate;
@@ -676,7 +691,8 @@ AnimatorScene::addNode(uint32_t nodeId,
                        qreal height,
                        QString description,
                        QColor * color,
-                       bool hasColorUpdate)
+                       bool hasColorUpdate,
+                       qreal rc)
 {
     AnimNode * aNode = 0;
     bool addToScene = false;
@@ -686,13 +702,16 @@ AnimatorScene::addNode(uint32_t nodeId,
                                         height,
                                         description,
                                         color,
-                                        &addToScene);
+                                        &addToScene,
+                                        rc);
 
     if(addToScene)
     {
         addItem(aNode->getGraphicsItem());
         addItem(aNode->getNodeIdTextItem());
         aNode->showNodeIdText(m_showNodeId);
+        aNode->getBatteryItem()->setScale(0.01);
+        addItem(aNode->getBatteryItem());
     }
 
 
@@ -840,6 +859,7 @@ AnimatorScene::updateNodeLocations()
         AnimNode * aNode = i->second;
         aNode->setPos(NodeMobilityMgr::getInstance()->getNodeLocation(i->first));
         //qDebug(m_nodeMobilityMgr->getNodeLocation(i->first), QString::number(i->first));
+        aNode->getBatteryItem()->setPos(aNode->getGraphicsItem()->boundingRect().right() + 0.5, aNode->getGraphicsItem()->boundingRect().bottom() + 2);
     }
 }
 

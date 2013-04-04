@@ -59,6 +59,7 @@ struct ParsedElement
     uint32_t nodeId;
     qreal node_x;
     qreal node_y;
+    qreal node_rc;
     uint8_t node_r;
     uint8_t node_g;
     uint8_t node_b;
@@ -82,7 +83,6 @@ struct ParsedElement
     double packetrx_toId;
     double packetrx_fbRx;
     double packetrx_lbRx;
-
 
     //meta-info
     QString meta_info;

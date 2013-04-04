@@ -51,17 +51,21 @@ public:
                       qreal width = 1,
                       qreal height = 1,
                       QString description ="",
-                      QColor * color = 0);
+                      QColor * color = 0,
+                      qreal capacity = 0);
     ~AnimNode();
 
     QGraphicsItem * getGraphicsItem();
+    QGraphicsItem * getBatteryItem();
     AnimNodeShape getNodeShape();
     void setPos(QPointF pos);
     void setSize(qreal size);
     uint32_t getNodeId();
     qreal getSize();
+    qreal getCapacity();
     QGraphicsSimpleTextItem * getNodeIdTextItem();
     void showNodeIdText(bool show);
+    void showEnergy(bool show);
     void setColor(uint8_t r, uint8_t g, uint8_t b);
     void setDescription(QString description);
     void setVisible(bool visible=true);
@@ -81,8 +85,10 @@ private:
     AnimNodeShape m_shape;
     qreal m_width;
     qreal m_height;
+    qreal m_capacity; //residual capacity
     QString m_description;
     QGraphicsItem * m_graphicsItem;
+    QGraphicsPixmapItem * m_batteryItem;
     QColor * m_color;
     QGraphicsSimpleTextItem * m_graphicsNodeIdTextItem;
     bool m_visible;
@@ -115,7 +121,8 @@ public:
                       qreal height,
                       QString description,
                       QColor * color,
-                      bool * addToScene);
+                      bool * addToScene,
+                      qreal rc);
     AnimNode * getNode(uint32_t nodeId);
     void addIpv4Address(uint32_t nodeId, QString ip);
     void addMacAddress(uint32_t nodeId, QString mac);

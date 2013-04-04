@@ -120,6 +120,8 @@ AnimatorMode::setControlDefaults()
     initUpdateRate();
     m_gridButton->setChecked(false);
     showGridLinesSlot();
+    m_showEnergyButton->setChecked(true);
+    showEnergySlot();
     m_gridLinesSpinBox->setValue(GRID_LINES_DEFAULT);
     m_nodeSizeComboBox->setCurrentIndex(NODE_SIZE_DEFAULT);
     m_showNodeIdButton->setChecked(true);
@@ -200,6 +202,7 @@ AnimatorMode::setVerticalToolbarWidgets()
     m_verticalToolbar->addWidget(m_saveButton);
     m_verticalToolbar->addWidget(m_resetButton);
     m_verticalToolbar->addWidget(m_showMetaButton);
+    m_verticalToolbar->addWidget(m_showEnergyButton);
 }
 
 void
@@ -259,7 +262,6 @@ AnimatorMode::initControls()
     m_gridButton->setIcon(QIcon(":/animator_resource/animator_grid.svg"));
     m_gridButton->setCheckable(true);
     connect(m_gridButton, SIGNAL(clicked()), this, SLOT(showGridLinesSlot()));
-
 
     m_gridLinesSpinBox = new QSpinBox;
     m_gridLinesSpinBox->setToolTip("Set the number of grid lines");
@@ -339,6 +341,12 @@ AnimatorMode::initControls()
     m_showNodeIdButton->setCheckable(true);
     connect(m_showNodeIdButton, SIGNAL(clicked()), this, SLOT(showNodeIdSlot()));
 
+
+    m_showEnergyButton = new QToolButton();
+    m_showEnergyButton->setCheckable(true);
+    m_showEnergyButton->setIcon(QIcon("./animator/battery_icon_4.jpg"));
+    m_showEnergyButton->setToolTip("Show residual capacity");
+    connect(m_showEnergyButton, SIGNAL(clicked()), this, SLOT(showEnergySlot()));
 
     m_playButton = new QToolButton;
     m_playButton->setIcon(QIcon(":/animator_resource/animator_play.svg"));
@@ -1030,6 +1038,20 @@ AnimatorMode::showPacketStatsSlot()
         m_showNodeIdButton->setToolTip("Show Node Id");
     }
  }
+
+ void
+  AnimatorMode::showEnergySlot()
+  {
+	 AnimatorScene::getInstance()->setShowEnergy(m_showEnergyButton->isChecked());
+	 if(m_showEnergyButton->isChecked())
+	 {
+		 m_showEnergyButton->setToolTip("Don't show remaining capacity");
+	 }
+	 else
+	 {
+		 m_showEnergyButton->setToolTip("Show remaining capacity");
+	 }
+  }
 
 
  void

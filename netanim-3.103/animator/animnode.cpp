@@ -24,6 +24,7 @@
 #include <QtGui/QGraphicsRectItem>
 #include <QtGui/QBrush>
 #include <QtGui/QPen>
+#include <QDir>
 
 namespace netanim {
 
@@ -34,7 +35,8 @@ AnimNode::AnimNode(uint32_t nodeId,
                    qreal width,
                    qreal height,
                    QString description,
-                   QColor * color) :
+                   QColor * color,
+                   qreal capacity) :
     m_nodeId(nodeId),
     m_shape(shape),
     m_width(width),
@@ -44,7 +46,8 @@ AnimNode::AnimNode(uint32_t nodeId,
     m_graphicsNodeIdTextItem(0),
     m_routePathMarked(false),
     m_routePathSource(false),
-    m_routePathDestination(false)
+    m_routePathDestination(false),
+    m_capacity(capacity)
 {
     switch (shape)
     {
@@ -76,6 +79,13 @@ AnimNode::AnimNode(uint32_t nodeId,
     m_visible = true;
     m_graphicsItem->setZValue(ANIMNODE_ELLIPSE_TYPE);
     m_graphicsNodeIdTextItem->setZValue(ANIMNODE_ID_TYPE);
+    QString path;
+    if(capacity > 0.75) path = "./animator/battery_icon_4.jpg";
+	else if(capacity > 0.5) path = "./animator/battery_icon_3.jpg";
+	else if(capacity > 0.25) path = "./animator/battery_icon_2.jpg";
+	else if(capacity > 0) path = "./animator/battery_icon_1.jpg";
+	else path = "./animator/battery_icon_0.jpg";
+	m_batteryItem = new QGraphicsPixmapItem(QPixmap(path));
 
 }
 
@@ -88,6 +98,8 @@ AnimNode::~AnimNode()
         delete m_graphicsNodeIdTextItem;
     if(m_color)
         delete m_color;
+    if(m_batteryItem)
+        delete m_batteryItem;
 }
 
 void
@@ -171,6 +183,12 @@ QGraphicsItem *
 AnimNode::getGraphicsItem()
 {
     return m_graphicsItem;
+}
+
+QGraphicsItem *
+AnimNode::getBatteryItem()
+{
+    return m_batteryItem;
 }
 
 void
@@ -296,6 +314,17 @@ AnimNode::showNodeIdText(bool show)
 }
 
 void
+AnimNode::showEnergy(bool show)
+{
+	m_batteryItem->setPos(m_graphicsItem->boundingRect().right() + 0.5, m_graphicsItem->boundingRect().bottom() + 2);
+	m_batteryItem->setVisible(show);
+    if(show == true && m_visible == false)
+    {
+    	m_batteryItem->setVisible(m_visible);
+    }
+}
+
+void
 AnimNode::setColor(uint8_t r, uint8_t g, uint8_t b)
 {
     QColor * c = new QColor(r, g, b);
@@ -361,7 +390,8 @@ AnimNodeMgr::addNode(uint32_t nodeId,
                      qreal height,
                      QString description,
                      QColor *color,
-                     bool * addToScene)
+                     bool * addToScene,
+                     qreal rc)
 {
     AnimNode * aNode = 0;
     //qDebug(QString("Adding node id:") + QString::number(nodeId));
@@ -372,7 +402,8 @@ AnimNodeMgr::addNode(uint32_t nodeId,
                              width,
                              height,
                              description,
-                             color);
+                             color,
+                             rc);
 
         m_animNodes[nodeId] = aNode;
         *addToScene = true;
@@ -446,6 +477,10 @@ AnimNodeMgr::systemReset()
         delete (i->second);
     }
     m_animNodes.clear();
+}
+qreal
+AnimNode::getCapacity(){
+	return m_capacity;
 }
 
 } // namespace netanim

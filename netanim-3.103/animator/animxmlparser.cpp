@@ -169,7 +169,8 @@ Animxmlparser::doParse()
                               CIRCLE,
                               currentNodeSize,
                               currentNodeSize,
-                              parsedElement.nodeDescription, pColor, parsedElement.hasColorUpdate);
+                              parsedElement.nodeDescription, pColor, parsedElement.hasColorUpdate,
+                              parsedElement.node_rc);
                break;
            }
            case XML_LINK:
@@ -395,6 +396,7 @@ Animxmlparser::parseNode()
     parsedElement.nodeId = m_reader->attributes().value("id").toString().toUInt();
     parsedElement.node_x = m_reader->attributes().value("locX").toString().toDouble();
     parsedElement.node_y = m_reader->attributes().value("locY").toString().toDouble();
+    parsedElement.node_rc = m_reader->attributes().value("rc").toString().toDouble();
     parsedElement.nodeDescription = m_reader->attributes().value("descr").toString();
     parsedElement.node_r = m_reader->attributes().value("r").toString().toUInt();
     parsedElement.node_g = m_reader->attributes().value("g").toString().toUInt();
@@ -416,6 +418,7 @@ Animxmlparser::parseNodeUpdate()
     parsedElement.visible = m_reader->attributes().value("visible").toString().toInt();
     parsedElement.updateTime = m_reader->attributes().value("t").toString().toDouble();
     parsedElement.hasColorUpdate = !m_reader->attributes().value("r").isEmpty();
+    parsedElement.node_rc = m_reader->attributes().value("rc").toString().toDouble();
     return parsedElement;
 }
 

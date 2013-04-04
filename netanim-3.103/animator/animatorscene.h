@@ -142,6 +142,7 @@ public:
     void setShowGrid(bool show);
     void setNodeSize(qreal nNodeSize);
     void setShowNodeId(bool show);
+    void setShowEnergy(bool show);
     void setCurrentScale(qreal xScale,qreal yScale);
     void setCurrentUpdateRate(double updateRate);
     void setSceneInfoText(QString text, bool show);
@@ -184,7 +185,8 @@ public:
                  qreal height,
                  QString description,
                  QColor * color,
-                 bool hasColorUpdate);
+                 bool hasColorUpdate,
+                 qreal capacity);
     void addLink(uint32_t fromId,
                  uint32_t toId,
                  QString fromNodeDescription,
@@ -239,6 +241,7 @@ private:
     qreal           m_currentXscale;
     qreal           m_currentYscale;
     bool            m_showNodeId;
+    bool            m_showEnergy;
     bool            m_showWirelessCircles;
     QTransform      m_textTransform;
     bool            m_showPackets;

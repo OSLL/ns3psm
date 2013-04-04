@@ -90,6 +90,7 @@ private:
     double m_currentTime;
     int m_currentZoomFactor;
     bool m_showWiressCircles;
+    bool m_showEnergy;
     double m_updateRates[UPDATE_RATE_SLIDER_MAX];
     double m_currentUpdateRate;
     double m_parsedMaxSimulationTime;
@@ -108,6 +109,7 @@ private:
     QLabel * m_gridLinesLabel;
     QLabel * m_nodeSizeLabel;
     QToolButton * m_gridButton;
+    QToolButton * m_showEnergyButton;
     QSpinBox * m_gridLinesSpinBox;
     QComboBox * m_nodeSizeComboBox;
     QToolButton * m_testButton;
@@ -207,6 +209,7 @@ private slots:
     void showMacSlot();
     void setUnicastMatchSlot();
     void showRoutePathSlot();
+    void showEnergySlot();
 
 };
 
