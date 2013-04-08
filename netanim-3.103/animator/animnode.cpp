@@ -80,11 +80,11 @@ AnimNode::AnimNode(uint32_t nodeId,
     m_graphicsItem->setZValue(ANIMNODE_ELLIPSE_TYPE);
     m_graphicsNodeIdTextItem->setZValue(ANIMNODE_ID_TYPE);
     QString path;
-    if(capacity > 0.75) path = "./animator/battery_icon_4.jpg";
-	else if(capacity > 0.5) path = "./animator/battery_icon_3.jpg";
-	else if(capacity > 0.25) path = "./animator/battery_icon_2.jpg";
-	else if(capacity > 0) path = "./animator/battery_icon_1.jpg";
-	else path = "./animator/battery_icon_0.jpg";
+    if(capacity > 0.75) path = ":/animator_resource/battery_icon_4.jpg";
+	else if(capacity > 0.5) path = ":/animator_resource/battery_icon_3.jpg";
+	else if(capacity > 0.25) path = ":/animator_resource/battery_icon_2.jpg";
+	else if(capacity > 0) path = ":/animator_resource/battery_icon_1.jpg";
+	else path = ":/animator_resource/battery_icon_0.jpg";
 	m_batteryItem = new QGraphicsPixmapItem(QPixmap(path));
 
 }

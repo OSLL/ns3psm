@@ -15,5 +15,10 @@
         <file>animator_showpackets.svg</file>
         <file>animator_save.svg</file>
         <file>animator_fastfwd.svg</file>
+        <file>battery_icon_0.jpg</file>
+        <file>battery_icon_1.jpg</file>
+        <file>battery_icon_2.jpg</file>
+        <file>battery_icon_3.jpg</file>
+        <file>battery_icon_4.jpg</file>
     </qresource>
 </RCC>

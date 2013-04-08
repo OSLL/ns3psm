@@ -344,7 +344,7 @@ AnimatorMode::initControls()
 
     m_showEnergyButton = new QToolButton();
     m_showEnergyButton->setCheckable(true);
-    m_showEnergyButton->setIcon(QIcon("./animator/battery_icon_4.jpg"));
+    m_showEnergyButton->setIcon(QIcon(":/animator_resource/battery_icon_4.jpg"));
     m_showEnergyButton->setToolTip("Show residual capacity");
     connect(m_showEnergyButton, SIGNAL(clicked()), this, SLOT(showEnergySlot()));
 
