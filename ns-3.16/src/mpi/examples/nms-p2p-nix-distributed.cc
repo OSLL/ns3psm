@@ -81,7 +81,7 @@ main (int argc, char *argv[])
 
   //temporary fix see bug 1560
   #define nCN (2)
-  #define nLANClients (42)
+  #define nLANClients (1)
   //uint32_t nCN = 2, nLANClients = 42;
   int32_t single = 0;
   int nBytes = 500000; // Bytes for each on/off app
