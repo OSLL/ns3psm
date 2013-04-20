@@ -1,0 +1,26 @@
+#------------------------------------------------------------------------------
+
+SOURCE=dpsm.cpp modes.h
+PSM=dpsm
+MYINCLUDES=/home/nokia/Desktop/PSM/psm/
+
+#MYLIBRARIES=fltk
+CC=g++
+
+#------------------------------------------------------------------------------
+
+
+
+all: $(PSM)
+
+
+
+$(PSM): $(SOURCE)
+
+  $(CC) -I$(MYINCLUDES) $(SOURCE) -o$(PSM)
+
+clean:
+
+	rm -f $(PSM)
+
+
