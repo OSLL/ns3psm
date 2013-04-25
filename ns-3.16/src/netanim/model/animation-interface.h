@@ -510,6 +510,9 @@ private:
   void UanPhyGenRxTrace (std::string context,
                          Ptr<const Packet>);
 
+  void RemainingEnergy (std::string context,
+                         int joules);
+
   void MobilityCourseChangeTrace (Ptr <const MobilityModel> mob);
 
   // Write a string to the specified handle;
@@ -518,6 +521,7 @@ private:
   void OutputWirelessPacket (Ptr<const Packet> p, AnimPacketInfo& pktInfo, AnimRxInfo pktrxInfo);
   void OutputCsmaPacket (Ptr<const Packet> p, AnimPacketInfo& pktInfo, AnimRxInfo pktrxInfo);
   void MobilityAutoCheck ();
+  void EnergyAutoCheck ();
   
 
   std::map<uint64_t, AnimPacketInfo> m_pendingWifiPackets;
@@ -596,9 +600,9 @@ private:
 
   std::string GetXMLOpen_anim (uint32_t lp);
   std::string GetXMLOpen_topology (double minX, double minY, double maxX, double maxY);
-  std::string GetXMLOpenClose_node (uint32_t lp, uint32_t id, double locX, double locY);
-  std::string GetXMLOpenClose_node (uint32_t lp, uint32_t id, double locX, double locY, struct Rgb rgb);
-  std::string GetXMLOpenClose_nodeupdate (uint32_t id, bool visible = true);
+  std::string GetXMLOpenClose_node (uint32_t lp, uint32_t id, double locX, double locY, double rc = 0);
+  std::string GetXMLOpenClose_node (uint32_t lp, uint32_t id, double locX, double locY, struct Rgb rgb, double rc = 0);
+  std::string GetXMLOpenClose_nodeupdate (uint32_t id, bool visible = true, double rc = 0);
   std::string GetXMLOpenClose_link (uint32_t fromLp, uint32_t fromId, uint32_t toLp, uint32_t toId);
   std::string GetXMLOpenClose_linkupdate (uint32_t fromId, uint32_t toId, std::string);
   std::string GetXMLOpen_packet (uint32_t fromLp, uint32_t fromId, double fbTx, double lbTx, std::string auxInfo = "");
@@ -705,4 +709,3 @@ private:
 
 }
 #endif
-
