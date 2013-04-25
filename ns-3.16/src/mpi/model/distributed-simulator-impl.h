@@ -25,6 +25,7 @@
 #include "ns3/ptr.h"
 
 #include <list>
+#include <boost/graph/adjacency_list.hpp>
 
 namespace ns3 {
 
@@ -83,6 +84,42 @@ private:
   Time     m_smallestTime;
 };
 
+struct vertex_data
+  {
+    vertex_data(uint32_t context = -1, uint32_t cluster = 0, uint32_t load = 0) :
+            context(context),
+            cluster(cluster),
+            load(load){ }
+
+    uint32_t context;
+    uint32_t cluster;
+    uint32_t load;
+  };
+
+struct edge_data
+  {
+    edge_data(Time delay = Time(0), uint32_t traffic = 0) :
+              delay(delay),
+              traffic(traffic) { }
+
+    Time delay;
+    uint32_t traffic;
+  };
+
+typedef boost::adjacency_list <
+                    boost::vecS,
+                    boost::vecS,
+                    boost::undirectedS,
+                    vertex_data,
+                    edge_data
+> graph_t; //graph type
+
+typedef boost::graph_traits< graph_t >::vertex_descriptor vertex_descriptor;
+typedef boost::graph_traits< graph_t >::edge_descriptor edge_descriptor;
+typedef boost::graph_traits< graph_t >::adjacency_iterator graph_adjacency_iterator;
+typedef boost::graph_traits< graph_t >::vertex_iterator graph_vertex_iterator;
+typedef boost::graph_traits< graph_t >::edge_iterator graph_edge_iterator;
+
 /**
  * \ingroup mpi
  *
@@ -120,6 +157,11 @@ private:
   virtual void DoDispose (void);
   void CalculateLookAhead (void);
 
+  // create network graph before run
+  void CreateNetworkGraph (void);
+  // print network graph in .dot format with nodes load and edge traffic
+  void PrintNetworkGraph (graph_t& g, const std::string& filename);
+
   void ProcessOneEvent (void);
   uint64_t NextTs (void) const;
   Time Next (void) const;
@@ -136,6 +178,13 @@ private:
   // not counting the "destroy" events; this is used for validation
   int m_unscheduledEvents;
 
+  // network graph
+  graph_t m_networkGraph;
+  // map: network node context -> graph vertex description
+  std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
+  // summary cluster load (not used now)
+  uint32_t m_clusterLoad;
+
   LbtsMessage* m_pLBTS;       // Allocated once we know how many systems
   uint32_t     m_myId;        // MPI Rank
   uint32_t     m_systemCount; // MPI Size
@@ -147,3 +196,4 @@ private:
 } // namespace ns3
 
 #endif /* DISTRIBUTED_SIMULATOR_IMPL_H */
+
