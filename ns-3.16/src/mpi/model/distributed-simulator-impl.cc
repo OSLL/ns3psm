@@ -17,6 +17,7 @@
  */
 
 #include "distributed-simulator-impl.h"
+#include "load-balancing-helper.h"
 #include "mpi-interface.h"
 
 #include "ns3/simulator.h"
@@ -29,8 +30,6 @@
 #include "ns3/assert.h"
 #include "ns3/log.h"
 #include <iostream>
-
-#include <boost/graph/graphviz.hpp>
 
 #include <cmath>
 #include <stdio.h>
@@ -75,113 +74,7 @@ LbtsMessage::GetMyId ()
   return m_myId;
 }
 
-void
-DistributedSimulatorImpl::CreateNetworkGraph (void)
-{
-  NodeContainer node_container =  NodeContainer::GetGlobal();
-  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
-    {
-      m_networkGraphVertexMap[(*it)->GetId()] = boost::add_vertex(vertex_data((*it)->GetId()), m_networkGraph);
-    }
 
-  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
-    {
-      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
-        {
-
-          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
-          // only works for p2p links currently
-          if (!localNetDevice->IsPointToPoint ())
-            {
-              continue;
-            }
-          Ptr<Channel> channel = localNetDevice->GetChannel ();
-          if (channel == 0)
-            {
-              continue;
-            }
-
-          // grab the adjacent node
-          Ptr<Node> remoteNode;
-          if (channel->GetDevice (1) == localNetDevice)
-            {
-               remoteNode = (channel->GetDevice (0))->GetNode ();
-               TimeValue delay;
-               channel->GetAttribute ("Delay", delay);
-               boost::add_edge (	m_networkGraphVertexMap[(*it)->GetId ()],
-                              m_networkGraphVertexMap[remoteNode->GetId ()],
-                              m_networkGraph);
-             }
-        }
-    }
-
-  FILE *in;
-  std::string fileInPath("cluster.txt");
-  if ((in = fopen(fileInPath.data(), "r")) == NULL)
-    {
-      printf("Error open file %s \n%s, %s, %i\n", fileInPath.data(), __func__, __FILE__, __LINE__);
-      return;
-    }
-
-  graph_vertex_iterator sti, eni;
-  boost::tie(sti, eni) = boost::vertices(m_networkGraph);
-
-  uint32_t c;
-  for (; sti < eni; ++sti)
-    {
-      fscanf(in, "%i", &c);
-      m_networkGraph[(*sti)].cluster = c;
-    }
-  fclose(in);
-}
-
-void
-DistributedSimulatorImpl::PrintNetworkGraph (graph_t& g, const std::string& filename)
-{
-  NodeContainer node_container =  NodeContainer::GetGlobal();
-  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
-    {
-      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
-        {
-
-          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
-          // only works for p2p links currently
-          if (!localNetDevice->IsPointToPoint ())
-            {
-              continue;
-            }
-          Ptr<Channel> channel = localNetDevice->GetChannel ();
-          if (channel == 0)
-            {
-              continue;
-            }
-
-          // grab the adjacent node
-          Ptr<Node> remoteNode;
-          if (channel->GetDevice (1) == localNetDevice)
-            {
-              remoteNode = (channel->GetDevice (0))->GetNode ();
-              m_networkGraph[ boost::edge(m_networkGraphVertexMap[(*it)->GetId ()], m_networkGraphVertexMap[remoteNode->GetId ()], m_networkGraph).first ].traffic = channel->GetTraffic ();
-              std::cout << channel->GetTraffic () << std::endl;
-            }
-
-          }
-      }
-
-    std::ofstream graphStream;
-
-    graphStream.open((filename + boost::lexical_cast<std::string>(MpiInterface::GetSystemId()) + std::string(".dot")).c_str());
-
-    boost::dynamic_properties dp;
-
-    dp.property("node_id", boost::get(boost::vertex_index, g));
-    dp.property("label", boost::get(&vertex_data::load, g));
-    dp.property("label", boost::get(&edge_data::traffic, g));
-
-    boost::write_graphviz_dp(graphStream, g, dp);
-
-    graphStream.close();
-}
 
 Time DistributedSimulatorImpl::m_lookAhead = Seconds (0);
 
@@ -197,6 +90,7 @@ DistributedSimulatorImpl::GetTypeId (void)
 
 DistributedSimulatorImpl::DistributedSimulatorImpl ()
 {
+
 #ifdef NS3_MPI
   m_myId = MpiInterface::GetSystemId ();
   m_systemCount = MpiInterface::GetSize ();
@@ -204,6 +98,8 @@ DistributedSimulatorImpl::DistributedSimulatorImpl ()
   // Allocate the LBTS message buffer
   m_pLBTS = new LbtsMessage[m_systemCount];
   m_grantedTime = Seconds (0);
+
+  LoadBalancingHelper::Install ();
 #else
   NS_FATAL_ERROR ("Can't use distributed simulator without MPI compiled in");
 #endif
@@ -220,6 +116,7 @@ DistributedSimulatorImpl::DistributedSimulatorImpl ()
   m_currentContext = 0xffffffff;
   m_unscheduledEvents = 0;
   m_events = 0;
+
 }
 
 DistributedSimulatorImpl::~DistributedSimulatorImpl ()
@@ -357,8 +254,7 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
   NS_LOG_LOGIC ("handle " << next.key.m_ts);
   m_currentTs = next.key.m_ts;
   m_currentContext = next.key.m_context;
-  if (m_currentContext >= 0) m_networkGraph[m_networkGraphVertexMap[m_currentContext]].load++;
-  m_clusterLoad++;
+  LoadBalancingHelper::IncNodeLoad (m_currentContext);
   m_currentUid = next.key.m_uid;
   next.impl->Invoke ();
   next.impl->Unref ();
@@ -387,10 +283,10 @@ DistributedSimulatorImpl::Next (void) const
 void
 DistributedSimulatorImpl::Run (void)
 {
+LoadBalancingHelper::Start ();
+
 #ifdef NS3_MPI
   CalculateLookAhead ();
-  CreateNetworkGraph ();
-  PrintNetworkGraph (m_networkGraph, "before");
   m_stop = false;
   while (!m_events->IsEmpty () && !m_stop)
     {
@@ -439,7 +335,6 @@ DistributedSimulatorImpl::Run (void)
   // If the simulator stopped naturally by lack of events, make a
   // consistency test to check that we didn't lose any events along the way.
   NS_ASSERT (!m_events->IsEmpty () || m_unscheduledEvents == 0);
-  PrintNetworkGraph (m_networkGraph, "after");
 #else
   NS_FATAL_ERROR ("Can't use distributed simulator without MPI compiled in");
 #endif

@@ -1,0 +1,363 @@
+/*
+ * load-balancing-application.cpp
+ *
+ *  Created on: May 2, 2013
+ *      Author: olya
+ */
+
+#include "load-balancing-application.h"
+#include "ns3/log.h"
+#include "ns3/simulator.h"
+#include "ns3/node-container.h"
+#include "ns3/channel.h"
+#include "mpi-interface.h"
+#include <boost/graph/graphviz.hpp>
+#include <boost/graph/adj_list_serialize.hpp>
+
+NS_LOG_COMPONENT_DEFINE ("LoadBalancingApplication");
+
+namespace ns3 {
+
+int get(global_value_owner_map, global_value k) {
+  return k.processor;
+}
+
+NS_OBJECT_ENSURE_REGISTERED (LoadBalancingApplication);
+
+TypeId
+LoadBalancingApplication::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::LoadBalancingApplication")
+    .SetParent<Application> ()
+    .AddConstructor<LoadBalancingApplication> ()
+    .AddAttribute ("ReclusteringInterval", "Reclustering interval.",
+                   TimeValue (Seconds (10)),
+                   MakeTimeAccessor (&LoadBalancingApplication::m_reclusteringInterval),
+                   MakeTimeChecker ())
+  ;
+  return tid;
+}
+
+
+LoadBalancingApplication::LoadBalancingApplication ()
+  : m_reclusteringInterval (Seconds (10)),
+    m_clusterLoad (0),
+    m_iterationNum (0)
+{
+  NS_LOG_FUNCTION (this);
+}
+
+LoadBalancingApplication::~LoadBalancingApplication()
+{
+  NS_LOG_FUNCTION (this);
+  delete m_mpiTaskQueue;
+}
+
+void
+LoadBalancingApplication::Init (void)
+{
+  char** arr;
+  int a = 0;
+  boost::mpi::environment env(a, arr);
+  boost::mpi::communicator world;
+
+  process_group pg(world);
+
+  m_mpiProcessId = process_id(pg);
+  m_mpiNumProcesses = num_processes(pg);
+
+  m_mpiTaskQueue = new dist_queue_type(pg, global_value_owner_map());
+
+  CreateNetworkGraph ();
+}
+
+void
+LoadBalancingApplication::SetReclusteringInterval (Time reclusteringInterval)
+{
+  NS_LOG_FUNCTION (this << reclusteringInterval);
+  m_reclusteringInterval = reclusteringInterval;
+}
+
+void
+LoadBalancingApplication::IncNodeLoad (uint32_t context)
+{
+  if ((context >= 0) && (context < m_networkGraphVertexMap.size ()))
+  {
+    boost::put(boost::vertex_color,
+               m_networkGraph,
+               m_networkGraphVertexMap[context],
+               boost::get(boost::vertex_color,
+                          m_networkGraph,
+                          m_networkGraphVertexMap[context]) + 1);
+  }
+}
+
+void
+LoadBalancingApplication::DoDispose (void)
+{
+  NS_LOG_FUNCTION (this);
+  Application::DoDispose ();
+}
+
+// Application Methods
+void LoadBalancingApplication::StartApplication () // Called at time specified by Start
+{
+  NS_LOG_FUNCTION (this);
+  Init ();
+  CancelEvents ();
+  ScheduleReclusteringEvent ();
+}
+
+void LoadBalancingApplication::StopApplication () // Called at time specified by Stop
+{
+  NS_LOG_FUNCTION (this);
+  CancelEvents ();
+}
+
+void LoadBalancingApplication::CancelEvents ()
+{
+  NS_LOG_FUNCTION (this);
+
+  /*if (m_reclusteringEvent.IsRunning ())
+    {
+	  // TODO do smth
+    }
+  Simulator::Cancel (m_reclusteringEvent);*/
+}
+
+void LoadBalancingApplication::ScheduleReclusteringEvent ()
+{
+  NS_LOG_FUNCTION (this);
+  m_reclusteringEvent = Simulator::Schedule (m_reclusteringInterval, &LoadBalancingApplication::StartReclustering, this);
+}
+
+// Event handlers
+void LoadBalancingApplication::StartReclustering ()
+{
+  NS_LOG_FUNCTION (this);
+
+  Reclustering ();
+}
+
+void LoadBalancingApplication::StartCreateNetworkGraph ()
+{
+  NS_LOG_FUNCTION (this);
+
+  CreateNetworkGraph ();
+}
+
+void LoadBalancingApplication::StartMergeNetwork ()
+{
+  NS_LOG_FUNCTION (this);
+
+  MergeNetworkGraph ();
+}
+
+void LoadBalancingApplication::StartUpdateNetworkGraph ()
+{
+  NS_LOG_FUNCTION (this);
+
+  UpdateNetworkGraph ();
+}
+
+void LoadBalancingApplication::StartWriteNetworkGraph ()
+{
+  NS_LOG_FUNCTION (this);
+
+  WriteNetworkGraph (std::string (""));
+}
+
+// Logical functions
+void LoadBalancingApplication::Reclustering ()
+{
+  NS_LOG_FUNCTION (this);
+
+  std::cout << "Reclustering" << std::endl;
+  UpdateNetworkGraph ();
+  MergeNetworkGraph ();
+  m_iterationNum ++;
+  ScheduleReclusteringEvent ();
+}
+
+void
+LoadBalancingApplication::CreateNetworkGraph (void)
+{
+  NodeContainer node_container =  NodeContainer::GetGlobal();
+  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+    {
+      m_networkGraphVertexMap[(*it)->GetId()] = boost::add_vertex(m_networkGraph);
+      boost::put(boost::vertex_name, m_networkGraph, m_networkGraphVertexMap[(*it)->GetId()], (*it)->GetId());
+    }
+
+  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+    {
+      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+        {
+
+          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
+          // only works for p2p links currently
+          if (!localNetDevice->IsPointToPoint ())
+            {
+              continue;
+            }
+          Ptr<Channel> channel = localNetDevice->GetChannel ();
+          if (channel == 0)
+            {
+              continue;
+            }
+
+          // grab the adjacent node
+          Ptr<Node> remoteNode;
+          if (channel->GetDevice (1) == localNetDevice)
+            {
+               remoteNode = (channel->GetDevice (0))->GetNode ();
+               TimeValue delay;
+               channel->GetAttribute ("Delay", delay);
+               boost::add_edge (m_networkGraphVertexMap[(*it)->GetId ()],
+                              m_networkGraphVertexMap[remoteNode->GetId ()],
+                              m_networkGraph);
+             }
+        }
+    }
+}
+
+void
+LoadBalancingApplication::UpdateNetworkGraph ()
+{
+  NodeContainer node_container =  NodeContainer::GetGlobal();
+  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+    {
+      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+        {
+
+          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
+
+          if (!localNetDevice->IsPointToPoint ())
+            {
+              continue;
+            }
+          Ptr<Channel> channel = localNetDevice->GetChannel ();
+          if (channel == 0)
+            {
+              continue;
+            }
+
+          Ptr<Node> remoteNode;
+          if (channel->GetDevice (1) == localNetDevice)
+            {
+              remoteNode = (channel->GetDevice (0))->GetNode ();
+              boost::put (boost::edge_weight,
+                          m_networkGraph,
+                          boost::edge(m_networkGraphVertexMap[(*it)->GetId ()], m_networkGraphVertexMap[remoteNode->GetId ()], m_networkGraph).first,
+                          channel->GetTraffic ()
+              );
+            }
+
+          }
+      }
+}
+
+void
+LoadBalancingApplication::WriteNetworkGraph (const std::string& filename)
+{
+  std::ofstream graphStream((filename +
+                             std::string("_").c_str() +
+                             boost::lexical_cast<std::string>(MpiInterface::GetSystemId()) +
+                             std::string("_").c_str() +
+                             boost::lexical_cast<std::string>(m_iterationNum) +
+                             std::string(".dot")).c_str());
+
+  boost::dynamic_properties dp;
+
+  boost::property_map<graph_t, boost::vertex_index_t>::type name =
+  boost::get(boost::vertex_index, m_networkGraph);
+  dp.property("node_id", name);
+
+  boost::property_map<graph_t, boost::vertex_color_t>::type color =
+  boost::get(boost::vertex_color, m_networkGraph);
+  dp.property("label", color);
+
+  boost::property_map<graph_t, boost::edge_weight_t>::type weight =
+  boost::get(boost::edge_weight, m_networkGraph);
+  dp.property("label", weight);
+
+  boost::property_map<graph_t, boost::edge_weight2_t>::type weight2 =
+  boost::get(boost::edge_weight2, m_networkGraph);
+  dp.property("label2", weight2);
+
+  boost::write_graphviz_dp(graphStream, m_networkGraph, dp);
+}
+
+void
+LoadBalancingApplication::MergeNetworkGraph ()
+{
+  for (int i = 0; i < m_mpiNumProcesses; i++)
+  {
+    if (i != m_mpiProcessId)
+    {
+        global_value v(i, m_networkGraph);
+        m_mpiTaskQueue->push(v);
+    }
+  }
+
+  while (!m_mpiTaskQueue->empty())
+  {
+    global_value v = m_mpiTaskQueue->top(); m_mpiTaskQueue->pop();
+    graph_t tmp = v.value;
+
+    // Merging nodes load
+
+    graph_vertex_iterator sti, eni;
+    boost::tie(sti, eni) = boost::vertices(tmp);
+    std::vector<vertex_descriptor> vertex_list(sti, eni);
+
+    for (uint32_t i = 0; i < vertex_list.size(); ++i) {
+      boost::put (boost::vertex_color,
+                  m_networkGraph,
+                  boost::vertex (boost::get (boost::vertex_index, tmp, vertex_list[i]), m_networkGraph),
+                  boost::get (boost::vertex_color,
+                             m_networkGraph,
+                             boost::vertex (boost::get(boost::vertex_index, tmp, vertex_list[i]), m_networkGraph)) +
+                  boost::get (boost::vertex_color,
+                             tmp,
+                             vertex_list[i]));
+    }
+
+    // Merging channels traffic
+
+    graph_edge_iterator st, en;
+    boost::tie(st, en) = boost::edges(tmp);
+    std::vector<edge_descriptor> edge_list(st, en);
+
+    for (uint32_t i = 0; i < edge_list.size(); ++i)
+    {
+      boost::put (boost::edge_weight,
+                  m_networkGraph,
+                  boost::edge (boost::vertex (boost::get(boost::vertex_index,
+                                                         tmp,
+                                                         boost::source(edge_list[i], tmp)),
+                                              m_networkGraph),
+                               boost::vertex (boost::get(boost::vertex_index,
+                                                         tmp,
+                                                         boost::target(edge_list[i], tmp)),
+                                              m_networkGraph),
+                               m_networkGraph).first,
+                  (double) (boost::get (boost::edge_weight,
+                                        m_networkGraph,
+                                        boost::edge (boost::vertex (boost::get (boost::vertex_index,
+                                                                               tmp,
+                                                                               boost::source(edge_list[i], tmp)),
+                                                                    m_networkGraph),
+                                                     boost::vertex (boost::get (boost::vertex_index,
+                                                                               tmp,
+                                                                               boost::target(edge_list[i], tmp)),
+                                                                    m_networkGraph),
+                                                     m_networkGraph).first) +
+                            boost::get (boost::edge_weight, tmp, edge_list[i])));
+    }
+  }
+  WriteNetworkGraph (std::string ("graph"));
+}
+
+
+} /* namespace ns3 */

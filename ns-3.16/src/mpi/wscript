@@ -32,9 +32,18 @@ def configure(conf):
 
 def build(bld):
     env = bld.env
+    #env.append_value('LIBPATH', '/usr/local/boost_1_52_0/lib')
+    env.append_value('LIB', 'boost_serialization')
+    env.append_value('LIB', 'boost_graph_parallel')
+    env.append_value('LIB', 'boost_mpi')
+    env.append_value('LIB', 'boost_system')
+
     sim = bld.create_ns3_module('mpi', ['core', 'network'])
+    
     sim.source = [
         'model/distributed-simulator-impl.cc',
+        'model/load-balancing-application.cc',
+        'model/load-balancing-helper.cc',
         'model/mpi-interface.cc',
         'model/mpi-receiver.cc',
         ]
@@ -43,6 +52,8 @@ def build(bld):
     headers.module = 'mpi'
     headers.source = [
         'model/distributed-simulator-impl.h',
+        'model/load-balancing-application.h',
+        'model/load-balancing-helper.h',
         'model/mpi-interface.h',
         'model/mpi-receiver.h',
         ]
