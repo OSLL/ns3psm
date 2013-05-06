@@ -17,7 +17,6 @@
  */
 
 #include "distributed-simulator-impl.h"
-#include "load-balancing-helper.h"
 #include "mpi-interface.h"
 
 #include "ns3/simulator.h"
@@ -99,7 +98,7 @@ DistributedSimulatorImpl::DistributedSimulatorImpl ()
   m_pLBTS = new LbtsMessage[m_systemCount];
   m_grantedTime = Seconds (0);
 
-  LoadBalancingHelper::Install ();
+  loadBalancingHelper.Install ();
 #else
   NS_FATAL_ERROR ("Can't use distributed simulator without MPI compiled in");
 #endif
@@ -254,7 +253,7 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
   NS_LOG_LOGIC ("handle " << next.key.m_ts);
   m_currentTs = next.key.m_ts;
   m_currentContext = next.key.m_context;
-  LoadBalancingHelper::IncNodeLoad (m_currentContext);
+  loadBalancingHelper.IncNodeLoad (m_currentContext);
   m_currentUid = next.key.m_uid;
   next.impl->Invoke ();
   next.impl->Unref ();
@@ -283,7 +282,7 @@ DistributedSimulatorImpl::Next (void) const
 void
 DistributedSimulatorImpl::Run (void)
 {
-LoadBalancingHelper::Start ();
+loadBalancingHelper.Start ();
 
 #ifdef NS3_MPI
   CalculateLookAhead ();

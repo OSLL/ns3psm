@@ -10,17 +10,19 @@
 
 #include "load-balancing-application.h"
 #include "ns3/application.h"
+#include "ns3/ptr.h"
+
 namespace ns3 {
 
 class LoadBalancingHelper {
 
 public:
-  static void Install ();
-  static void Start ();
-  static void IncNodeLoad (uint32_t context);
+  void Install ();
+  void Start ();
+  void IncNodeLoad (uint32_t context);
 
 private:
-  static Ptr<LoadBalancingApplication> m_application;
+  Ptr<LoadBalancingApplication> m_application;
 
 };
 

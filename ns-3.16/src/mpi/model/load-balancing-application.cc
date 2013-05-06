@@ -13,6 +13,7 @@
 #include "mpi-interface.h"
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/adj_list_serialize.hpp>
+#include <utility>
 
 #include "lso_cluster_func.hpp"
 
@@ -47,6 +48,15 @@ LoadBalancingApplication::LoadBalancingApplication ()
     m_iterationNum (0)
 {
   NS_LOG_FUNCTION (this);
+
+  char** argv; int argc = 0;
+  boost::mpi::environment env(argc, argv);
+  boost::mpi::communicator world;
+
+  process_group pg(world);
+  m_mpiProcessId = process_id(pg);
+  m_mpiNumProcesses = num_processes(pg);
+  m_mpiTaskQueue = new dist_queue_type(pg, global_value_owner_map());
 }
 
 LoadBalancingApplication::~LoadBalancingApplication()
@@ -58,18 +68,6 @@ LoadBalancingApplication::~LoadBalancingApplication()
 void
 LoadBalancingApplication::Init (void)
 {
-  char** arr;
-  int a = 0;
-  boost::mpi::environment env(a, arr);
-  boost::mpi::communicator world;
-
-  process_group pg(world);
-
-  m_mpiProcessId = process_id(pg);
-  m_mpiNumProcesses = num_processes(pg);
-
-  m_mpiTaskQueue = new dist_queue_type(pg, global_value_owner_map());
-
   CreateNetworkGraph ();
 }
 
@@ -175,7 +173,6 @@ void LoadBalancingApplication::Reclustering ()
   NS_LOG_FUNCTION (this);
 
   std::cout << "Reclustering" << std::endl;
-  UpdateNetworkGraph ();
   MergeNetworkGraph ();
   m_iterationNum ++;
   ScheduleReclusteringEvent ();
@@ -283,21 +280,21 @@ LoadBalancingApplication::WriteNetworkGraph (const std::string& filename)
   boost::get(boost::edge_weight, m_networkGraph);
   dp.property("label", weight);
 
-  boost::property_map<graph_t, boost::edge_weight2_t>::type weight2 =
-  boost::get(boost::edge_weight2, m_networkGraph);
-  dp.property("label2", weight2);
-
   boost::write_graphviz_dp(graphStream, m_networkGraph, dp);
 }
 
 void
 LoadBalancingApplication::MergeNetworkGraph ()
 {
+  UpdateNetworkGraph ();
+
   if (m_mpiProcessId != 0)
   {
       global_value v(0, m_networkGraph);
       m_mpiTaskQueue->push(v);
   }
+
+  double max_traffic = 0;
 
   while (!m_mpiTaskQueue->empty())
   {
@@ -330,6 +327,23 @@ LoadBalancingApplication::MergeNetworkGraph ()
 
     for (uint32_t i = 0; i < edge_list.size(); ++i)
     {
+      double sum_traffic = (double) (boost::get (boost::edge_weight,
+                                                 m_networkGraph,
+                                                 boost::edge (boost::vertex (boost::get (boost::vertex_index,
+                                                                                         tmp,
+                                                                                         boost::source(edge_list[i], tmp)),
+                                                                             m_networkGraph),
+                                                              boost::vertex (boost::get (boost::vertex_index,
+                                                                                         tmp,
+                                                                                         boost::target(edge_list[i], tmp)),
+                                                                             m_networkGraph),
+                                                              m_networkGraph).first) +
+                                                 boost::get (boost::edge_weight, tmp, edge_list[i]));
+      if (sum_traffic > max_traffic)
+      {
+         max_traffic = sum_traffic;
+      }
+
       boost::put (boost::edge_weight,
                   m_networkGraph,
                   boost::edge (boost::vertex (boost::get(boost::vertex_index,
@@ -341,23 +355,27 @@ LoadBalancingApplication::MergeNetworkGraph ()
                                                          boost::target(edge_list[i], tmp)),
                                               m_networkGraph),
                                m_networkGraph).first,
-                  (double) (boost::get (boost::edge_weight,
-                                        m_networkGraph,
-                                        boost::edge (boost::vertex (boost::get (boost::vertex_index,
-                                                                               tmp,
-                                                                               boost::source(edge_list[i], tmp)),
-                                                                    m_networkGraph),
-                                                     boost::vertex (boost::get (boost::vertex_index,
-                                                                               tmp,
-                                                                               boost::target(edge_list[i], tmp)),
-                                                                    m_networkGraph),
-                                                     m_networkGraph).first) +
-                            boost::get (boost::edge_weight, tmp, edge_list[i])));
+                               sum_traffic
+                  );
     }
+
   }
+
 
   if (m_mpiProcessId == 0)
   {
+    graph_edge_iterator st, en;
+    boost::tie(st, en) = boost::edges(m_networkGraph);
+    std::vector<edge_descriptor> edge_list(st, en);
+
+    for (uint32_t i = 0; i < edge_list.size(); ++i)
+    {
+    boost::put (boost::edge_weight,
+                m_networkGraph,
+                edge_list[i],
+                (max_traffic - boost::get (boost::edge_weight, m_networkGraph, edge_list[i])) / max_traffic
+               );
+    }
     WriteNetworkGraph (std::string ("graph"));
     ClusterNetworkGraph ();
   }
@@ -391,7 +409,7 @@ LoadBalancingApplication::ClusterNetworkGraph ()
 
   const char* argv[] = {"example.txt",
                        "--loss",
-                       "modularity",
+                       "ncut",//"modularity",
                        "--num_clusters",
                        num_clusters_char,
                        NULL};
@@ -406,15 +424,29 @@ LoadBalancingApplication::ClusterNetworkGraph ()
     runner.add_all_parameters(param_source);
     runner.run();
 
-    std::cerr << "loss: " << runner.loss << std::endl;
-    std::cerr << "num clusters: " << runner.num_clusters << std::endl;
+    //first - node id
+    //second first - old cluster
+    //second second - new cluster
+    std::vector<std::pair <uint32_t, std::pair <uint32_t, uint32_t> > > nodes_for_moving;
 
     for (size_t i = 0 ; i < runner.clustering.size() ; ++i)
     {
-      boost::put (boost::vertex_distance,
-                  m_networkGraph,
-                  boost::vertex (i, m_networkGraph),
-                  runner.clustering[i]);
+      uint32_t old_node = boost::get (boost::vertex_distance, m_networkGraph, boost::vertex (i, m_networkGraph));
+      uint32_t new_node = runner.clustering[i];
+      if (old_node != new_node)
+      {
+         std::pair <uint32_t, uint32_t> nodes (old_node, new_node);
+         std::pair <uint32_t, std::pair<uint32_t, uint32_t> > node_for_moving (i, nodes);
+         nodes_for_moving.push_back(node_for_moving);
+
+         boost::put (boost::vertex_distance,
+                     m_networkGraph,
+                     boost::vertex (i, m_networkGraph),
+                     new_node);
+
+         std::cout << "node " << i << " change cluster node from " << old_node << " to " << new_node << std::endl;
+      }
+
     }
 
     WriteClusterGraph (std::string("cluster"));

@@ -11,8 +11,6 @@
 
 namespace ns3 {
 
-Ptr<LoadBalancingApplication> LoadBalancingHelper::m_application = new LoadBalancingApplication();
-
 void
 LoadBalancingHelper::Install ()
 {
