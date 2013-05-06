@@ -121,6 +121,10 @@ private:
   void UpdateNetworkGraph (void);
   // Write network graph in .dot format
   void WriteNetworkGraph (const std::string& filename);
+  // Clustering graph with lso
+  void ClusterNetworkGraph ();
+  // Write network graph in .dot format
+  void WriteClusterGraph (const std::string& filename);
 
   Time            m_reclusteringInterval;          // reclustering interval
   EventId         m_reclusteringEvent;             // Eventid of pending "clustering" event

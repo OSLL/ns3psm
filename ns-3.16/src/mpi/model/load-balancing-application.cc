@@ -14,6 +14,8 @@
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/adj_list_serialize.hpp>
 
+#include "lso_cluster_func.hpp"
+
 NS_LOG_COMPONENT_DEFINE ("LoadBalancingApplication");
 
 namespace ns3 {
@@ -291,13 +293,10 @@ LoadBalancingApplication::WriteNetworkGraph (const std::string& filename)
 void
 LoadBalancingApplication::MergeNetworkGraph ()
 {
-  for (int i = 0; i < m_mpiNumProcesses; i++)
+  if (m_mpiProcessId != 0)
   {
-    if (i != m_mpiProcessId)
-    {
-        global_value v(i, m_networkGraph);
-        m_mpiTaskQueue->push(v);
-    }
+      global_value v(0, m_networkGraph);
+      m_mpiTaskQueue->push(v);
   }
 
   while (!m_mpiTaskQueue->empty())
@@ -356,8 +355,103 @@ LoadBalancingApplication::MergeNetworkGraph ()
                             boost::get (boost::edge_weight, tmp, edge_list[i])));
     }
   }
-  WriteNetworkGraph (std::string ("graph"));
+
+  if (m_mpiProcessId == 0)
+  {
+    WriteNetworkGraph (std::string ("graph"));
+    ClusterNetworkGraph ();
+  }
+
 }
 
+void
+LoadBalancingApplication::ClusterNetworkGraph ()
+{
+
+  {
+    std::ofstream forClusterStream(std::string("example.txt").c_str());
+
+    graph_edge_iterator st, en;
+    boost::tie(st, en) = boost::edges(m_networkGraph);
+    std::vector<edge_descriptor> edge_list(st, en);
+
+    for (uint32_t i = 0; i < edge_list.size(); ++i)
+    {
+      forClusterStream << boost::get(boost::vertex_index, m_networkGraph, boost::source(edge_list[i], m_networkGraph));
+      forClusterStream << " ";
+      forClusterStream << boost::get(boost::vertex_index, m_networkGraph, boost::target(edge_list[i], m_networkGraph));
+      forClusterStream << " ";
+      forClusterStream << boost::get(boost::edge_weight, m_networkGraph, edge_list[i]);
+      forClusterStream << "\n";
+    }
+  }
+
+  std::string num_clusters_string = boost::lexical_cast<std::string>(m_mpiNumProcesses);
+  char const *num_clusters_char = num_clusters_string.c_str();
+
+  const char* argv[] = {"example.txt",
+                       "--loss",
+                       "modularity",
+                       "--num_clusters",
+                       num_clusters_char,
+                       NULL};
+
+  int argc = sizeof(argv) / sizeof(char*) - 1;
+
+
+  try {
+    // parse arguments, and run the clustering algorithm
+    ParamSourceCommandline param_source(argc, argv);
+    LsoMainFunctionCommandLine runner;
+    runner.add_all_parameters(param_source);
+    runner.run();
+
+    std::cerr << "loss: " << runner.loss << std::endl;
+    std::cerr << "num clusters: " << runner.num_clusters << std::endl;
+
+    for (size_t i = 0 ; i < runner.clustering.size() ; ++i)
+    {
+      boost::put (boost::vertex_distance,
+                  m_networkGraph,
+                  boost::vertex (i, m_networkGraph),
+                  runner.clustering[i]);
+    }
+
+    WriteClusterGraph (std::string("cluster"));
+
+  } catch (std::exception const& e)
+  {
+	  std::cerr << e.what() << std::endl;
+    return;
+  } catch (...)
+  {
+	  std::cerr << "Unexpected error" << std::endl;
+    return;
+  }
+}
+
+void
+LoadBalancingApplication::WriteClusterGraph (const std::string& filename)
+{
+  std::ofstream graphStream((filename +
+                             std::string("_").c_str() +
+                             boost::lexical_cast<std::string>(MpiInterface::GetSystemId()) +
+                             std::string("_").c_str() +
+                             boost::lexical_cast<std::string>(m_iterationNum) +
+                             std::string(".dot")).c_str());
+
+  boost::dynamic_properties dp;
+
+  boost::property_map<graph_t, boost::vertex_name_t>::type name =
+  boost::get(boost::vertex_name, m_networkGraph);
+  dp.property("node_id", name);
+
+  boost::property_map<graph_t, boost::vertex_distance_t>::type distance =
+  boost::get(boost::vertex_distance, m_networkGraph);
+  dp.property("label", distance);
+
+  boost::write_graphviz_dp(graphStream, m_networkGraph, dp);
+
+}
 
 } /* namespace ns3 */
