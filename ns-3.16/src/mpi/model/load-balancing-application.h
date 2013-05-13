@@ -48,11 +48,23 @@ typedef boost::graph_traits< graph_t >::edge_iterator graph_edge_iterator;
 typedef boost::graph::distributed::mpi_process_group process_group;
 typedef boost::graph::distributed::mpi_process_group::process_id_type process_id_type;
 
+struct node_for_moving_t
+{
+  uint32_t context;
+  uint32_t old_cluster;
+  uint32_t new_cluster;
+};
 
-struct global_value {
+struct apllications_for_moving_t
+{
+  uint32_t context;
+  std::vector< std::string > appliations;
+};
 
-    global_value() {processor = -1;}
-    global_value(int processor, graph_t graph) : processor(processor), value(graph) { }
+struct global_value_graph {
+
+    global_value_graph() {processor = -1;}
+    global_value_graph(int processor, graph_t graph) : processor(processor), value(graph) { }
 
     int processor;
     graph_t value;
@@ -63,21 +75,78 @@ struct global_value {
     }
 };
 
+struct global_value_node {
 
-struct global_value_owner_map
+    global_value_node() {processor = -1;}
+    global_value_node(int processor, node_for_moving_t node) : processor(processor), value(node) { }
+
+    int processor;
+    node_for_moving_t value;
+
+    template<class Archiver>
+    void serialize(Archiver& ar, const unsigned int) {
+      ar & processor & value.context & value.old_cluster & value.new_cluster;
+    }
+};
+
+struct global_value_applications {
+
+    global_value_applications() {processor = -1;}
+    global_value_applications(int processor, apllications_for_moving_t applications) : processor(processor), value(applications) { }
+
+    int processor;
+    apllications_for_moving_t value;
+
+    template<class Archiver>
+    void serialize(Archiver& ar, const unsigned int) {
+      ar & processor & value.context & value.appliations;
+    }
+};
+
+struct global_value_owner_map_graph
 {
   typedef int value_type;
   typedef value_type reference;
-  typedef global_value key_type;
+  typedef global_value_graph key_type;
+  typedef boost::readable_property_map_tag category;
+};
+
+struct global_value_owner_map_node
+{
+  typedef int value_type;
+  typedef value_type reference;
+  typedef global_value_node key_type;
+  typedef boost::readable_property_map_tag category;
+};
+
+struct global_value_owner_map_applications
+{
+  typedef int value_type;
+  typedef value_type reference;
+  typedef global_value_applications key_type;
   typedef boost::readable_property_map_tag category;
 };
 
 
-typedef boost::queue<global_value> local_queue_type;
+typedef boost::queue<global_value_graph> local_queue_graph_t;
 typedef boost::graph::distributed::distributed_queue<
                                             process_group,
-                                            global_value_owner_map,
-                                            local_queue_type > dist_queue_type;
+                                            global_value_owner_map_graph,
+                                            local_queue_graph_t > dist_queue_graph_t;
+
+typedef boost::queue<global_value_node> local_queue_node_t;
+typedef boost::graph::distributed::distributed_queue<
+                                            process_group,
+                                            global_value_owner_map_node,
+                                            local_queue_node_t> dist_queue_node_t;
+
+typedef boost::queue<global_value_applications> local_queue_applications_t;
+typedef boost::graph::distributed::distributed_queue<
+                                            process_group,
+                                            global_value_owner_map_applications,
+                                            local_queue_applications_t> dist_queue_applications_t;
+
+
 
 
 class LoadBalancingApplication : public Application {
@@ -142,8 +211,10 @@ private:
 
   process_id_type m_mpiProcessId;
   process_id_type m_mpiNumProcesses;
-  dist_queue_type* m_mpiTaskQueue;
-
+  process_group m_mpiProcessGroup;
+  dist_queue_graph_t* m_mpiGraphQueue;
+  dist_queue_node_t* m_mpiNodeQueue;
+  dist_queue_applications_t* m_mpiApplicationsQueue;
 
 private:
   void ScheduleReclusteringEvent ();

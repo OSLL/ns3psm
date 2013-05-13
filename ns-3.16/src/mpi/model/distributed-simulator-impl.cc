@@ -24,6 +24,7 @@
 #include "ns3/event-impl.h"
 #include "ns3/channel.h"
 #include "ns3/node-container.h"
+#include "ns3/node-list.h"
 #include "ns3/ptr.h"
 #include "ns3/pointer.h"
 #include "ns3/assert.h"
@@ -255,8 +256,21 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
   m_currentContext = next.key.m_context;
   loadBalancingHelper.IncNodeLoad (m_currentContext);
   m_currentUid = next.key.m_uid;
-  next.impl->Invoke ();
-  next.impl->Unref ();
+
+  if ((m_currentContext > 0) && (m_currentContext < NodeContainer::GetGlobal ().GetN ()))
+  {
+	  Ptr<Node> currentContextNode = NodeList::GetNode (m_currentContext);
+	  uint32_t currentContextSysId = currentContextNode->GetSystemId ();
+	  if (currentContextSysId == MpiInterface::GetSystemId())
+	  {
+	    next.impl->Invoke ();
+	    next.impl->Unref ();
+	  }
+  } else {
+    next.impl->Invoke ();
+    next.impl->Unref ();
+  }
+
 }
 
 bool
