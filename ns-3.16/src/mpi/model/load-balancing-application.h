@@ -11,18 +11,22 @@
 #include "ns3/application.h"
 #include "ns3/event-id.h"
 
+#ifdef NS3_MPI
+
 #include <boost/graph/use_mpi.hpp>
 #include <boost/pending/queue.hpp>
+#include <boost/graph/distributed/mpi_process_group.hpp>
+#include <boost/graph/distributed/queue.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/serialization/version.hpp>
 #include <boost/serialization/serialization.hpp>
 
-#include <boost/graph/distributed/mpi_process_group.hpp>
-#include <boost/graph/distributed/queue.hpp>
+#endif
 
 namespace ns3 {
 
+#ifdef NS3_MPI
 // vertex_name - for reading from dot
 // vertex_color - load
 // vertex_distance - # cluster node
@@ -148,6 +152,7 @@ typedef boost::graph::distributed::distributed_queue<
 
 
 
+#endif
 
 class LoadBalancingApplication : public Application {
 
@@ -169,6 +174,7 @@ private:
   // inherited from Application base class.
   virtual void StartApplication (void);    // Called at time specified by Start
   virtual void StopApplication (void);     // Called at time specified by Stop
+
 
   //helpers
   void CancelEvents ();
@@ -195,19 +201,21 @@ private:
   // Write network graph in .dot format
   void WriteClusterGraph (const std::string& filename);
 
-  Time            m_reclusteringInterval;          // reclustering interval
+  Time     m_reclusteringInterval;          // reclustering interval
+  uint32_t m_clusterLoad;
+  uint32_t m_iterationNum;
+  TypeId   m_tid;
+
+  #ifdef NS3_MPI
+
   EventId         m_reclusteringEvent;             // Eventid of pending "clustering" event
   Time            m_lastReclusteringTime;          // Last clustering time
-  TypeId          m_tid;
 
   // network graph
   graph_t m_networkGraph;
   // map: network node context -> graph vertex description
   std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
   // summary cluster load (not used now)
-  uint32_t m_clusterLoad;
-
-  uint32_t m_iterationNum;
 
   process_id_type m_mpiProcessId;
   process_id_type m_mpiNumProcesses;
@@ -216,8 +224,11 @@ private:
   dist_queue_node_t* m_mpiNodeQueue;
   dist_queue_applications_t* m_mpiApplicationsQueue;
 
+  #endif
+
 private:
   void ScheduleReclusteringEvent ();
+
 };
 
 } /* namespace ns3 */

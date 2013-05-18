@@ -56,12 +56,12 @@ def build(bld):
         'model/load-balancing-helper.h',
         'model/mpi-interface.h',
         'model/mpi-receiver.h',
-        #'model/argument_parser.hpp',
+        'model/argument_parser.hpp',
         'model/loss_functions.hpp',
         'model/lso_cluster.hpp',
         'model/lso_cluster_func.hpp',
         'model/lso_cluster_impl.hpp',
-        #'model/sparse_matrix.hpp',
+        'model/sparse_matrix.hpp',
         ]
 
     if env['ENABLE_MPI']:

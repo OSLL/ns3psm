@@ -11,18 +11,23 @@
 #include "ns3/node-container.h"
 #include "ns3/node-list.h"
 #include "ns3/channel.h"
+
+#ifdef NS3_MPI
+
 #include "mpi-interface.h"
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/adj_list_serialize.hpp>
 #include <utility>
 #include <sstream>
-
 #include "lso_cluster_func.hpp"
+
+#endif
 
 NS_LOG_COMPONENT_DEFINE ("LoadBalancingApplication");
 
 namespace ns3 {
 
+#ifdef NS3_MPI
 int get(global_value_owner_map_graph, global_value_graph k) {
   return k.processor;
 }
@@ -34,6 +39,8 @@ int get(global_value_owner_map_node, global_value_node k) {
 int get(global_value_owner_map_applications, global_value_applications k) {
   return k.processor;
 }
+
+#endif
 
 NS_OBJECT_ENSURE_REGISTERED (LoadBalancingApplication);
 
@@ -57,6 +64,7 @@ LoadBalancingApplication::LoadBalancingApplication ()
     m_iterationNum (0)
 {
   NS_LOG_FUNCTION (this);
+  #ifdef NS3_MPI
 
   char** argv; int argc = 0;
   boost::mpi::environment env(argc, argv);
@@ -70,14 +78,17 @@ LoadBalancingApplication::LoadBalancingApplication ()
   m_mpiGraphQueue = new dist_queue_graph_t(pg, global_value_owner_map_graph());
   m_mpiNodeQueue = new dist_queue_node_t(pg, global_value_owner_map_node());
   m_mpiApplicationsQueue =  new dist_queue_applications_t(pg, global_value_owner_map_applications());
+  #endif
 }
 
 LoadBalancingApplication::~LoadBalancingApplication()
 {
   NS_LOG_FUNCTION (this);
+  #ifdef NS3_MPI
   delete m_mpiGraphQueue;
   delete m_mpiNodeQueue;
   delete m_mpiApplicationsQueue;
+  #endif
 }
 
 void
@@ -96,6 +107,7 @@ LoadBalancingApplication::SetReclusteringInterval (Time reclusteringInterval)
 void
 LoadBalancingApplication::IncNodeLoad (uint32_t context)
 {
+  #ifdef NS3_MPI
   if ((context >= 0) && (context < m_networkGraphVertexMap.size ()))
   {
     boost::put(boost::vertex_color,
@@ -105,6 +117,7 @@ LoadBalancingApplication::IncNodeLoad (uint32_t context)
                           m_networkGraph,
                           m_networkGraphVertexMap[context]) + 1);
   }
+  #endif
 }
 
 void
@@ -118,15 +131,19 @@ LoadBalancingApplication::DoDispose (void)
 void LoadBalancingApplication::StartApplication () // Called at time specified by Start
 {
   NS_LOG_FUNCTION (this);
+  #ifdef NS3_MPI
   Init ();
   CancelEvents ();
   ScheduleReclusteringEvent ();
+  #endif
 }
 
 void LoadBalancingApplication::StopApplication () // Called at time specified by Stop
 {
   NS_LOG_FUNCTION (this);
+  #ifdef NS3_MPI
   CancelEvents ();
+  #endif
 }
 
 void LoadBalancingApplication::CancelEvents ()
@@ -143,7 +160,9 @@ void LoadBalancingApplication::CancelEvents ()
 void LoadBalancingApplication::ScheduleReclusteringEvent ()
 {
   NS_LOG_FUNCTION (this);
+  #ifdef NS3_MPI
   m_reclusteringEvent = Simulator::Schedule (m_reclusteringInterval, &LoadBalancingApplication::StartReclustering, this);
+  #endif
 }
 
 // Event handlers
@@ -186,15 +205,17 @@ void LoadBalancingApplication::StartWriteNetworkGraph ()
 void LoadBalancingApplication::Reclustering ()
 {
   NS_LOG_FUNCTION (this);
-
+  #ifdef NS3_MPI
   std::cerr << "Reclustering iteration " << m_iterationNum ++ << " on cluster node "<< m_mpiProcessId << std::endl;
   MergeNetworkGraph ();
   ScheduleReclusteringEvent ();
+  #endif
 }
 
 void
 LoadBalancingApplication::CreateNetworkGraph (void)
 {
+  #ifdef NS3_MPI
   NodeContainer node_container =  NodeContainer::GetGlobal();
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
@@ -231,11 +252,13 @@ LoadBalancingApplication::CreateNetworkGraph (void)
              }
         }
     }
+  #endif
 }
 
 void
 LoadBalancingApplication::UpdateNetworkGraph ()
 {
+  #ifdef NS3_MPI
   NodeContainer node_container =  NodeContainer::GetGlobal();
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
@@ -267,11 +290,13 @@ LoadBalancingApplication::UpdateNetworkGraph ()
 
           }
       }
+  #endif
 }
 
 void
 LoadBalancingApplication::WriteNetworkGraph (const std::string& filename)
 {
+  #ifdef NS3_MPI
   std::ofstream graphStream((filename +
                              std::string("_").c_str() +
                              boost::lexical_cast<std::string>(MpiInterface::GetSystemId()) +
@@ -294,11 +319,13 @@ LoadBalancingApplication::WriteNetworkGraph (const std::string& filename)
   dp.property("label", weight);
 
   boost::write_graphviz_dp(graphStream, m_networkGraph, dp);
+  #endif
 }
 
 void
 LoadBalancingApplication::MergeNetworkGraph ()
 {
+  #ifdef NS3_MPI
   UpdateNetworkGraph ();
 
   if (m_mpiProcessId != 0)
@@ -441,12 +468,13 @@ LoadBalancingApplication::MergeNetworkGraph ()
       }
     }
   synchronize(m_mpiProcessGroup);
+  #endif
 }
 
 void
 LoadBalancingApplication::ClusterNetworkGraph ()
 {
-
+  #ifdef NS3_MPI
   {
     std::ofstream clusterGraphStream (std::string ("example.txt").c_str ());
 
@@ -569,13 +597,14 @@ LoadBalancingApplication::ClusterNetworkGraph ()
           border_nodes.push_back(border_node);
       }
   }*/
-
+  #endif
 
 }
 
 void
 LoadBalancingApplication::WriteClusterGraph (const std::string& filename)
 {
+  #ifdef NS3_MPI
   std::ofstream graphStream((filename +
                              std::string("_").c_str() +
                              boost::lexical_cast<std::string>(MpiInterface::GetSystemId()) +
@@ -594,7 +623,7 @@ LoadBalancingApplication::WriteClusterGraph (const std::string& filename)
   dp.property("label", distance);
 
   boost::write_graphviz_dp(graphStream, m_networkGraph, dp);
-
+  #endif
 }
 
 } /* namespace ns3 */
