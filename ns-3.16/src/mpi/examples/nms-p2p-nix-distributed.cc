@@ -81,6 +81,8 @@ main (int argc, char *argv[])
   uint32_t systemId = MpiInterface::GetSystemId ();
   uint32_t systemCount = MpiInterface::GetSize ();
 
+  LogComponentEnable ("CampusNetworkModelDistributed", LOG_LEVEL_FUNCTION);
+
   //temporary fix see bug 1560
   #define nCN (2)
   #define nLANClients (1)

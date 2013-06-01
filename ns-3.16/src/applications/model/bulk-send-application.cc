@@ -31,11 +31,13 @@
 #include "ns3/tcp-socket-factory.h"
 #include "bulk-send-application.h"
 
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::BulkSendApplication);
 NS_LOG_COMPONENT_DEFINE ("BulkSendApplication");
 
 namespace ns3 {
 
 NS_OBJECT_ENSURE_REGISTERED (BulkSendApplication);
+
 
 TypeId
 BulkSendApplication::GetTypeId (void)
@@ -218,7 +220,5 @@ void BulkSendApplication::DataSend (Ptr<Socket>, uint32_t)
       Simulator::ScheduleNow (&BulkSendApplication::SendData, this);
     }
 }
-
-
 
 } // Namespace ns3

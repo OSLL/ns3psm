@@ -47,6 +47,15 @@ public:
    */
   double RandU01 (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    for(int i = 0; i < 6; i++)
+    {
+      ar & m_currentState[0];
+    }
+  }
+
 private:
   void AdvanceNthBy (uint64_t nth, int by, double state[6]);
 

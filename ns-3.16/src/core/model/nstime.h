@@ -442,6 +442,11 @@ public:
     return Time (value);
   }
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & m_data;
+  }
+
 private:
   struct Information
   {

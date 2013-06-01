@@ -24,10 +24,4 @@ LoadBalancingHelper::Start ()
   m_application->Start ();
 }
 
-void
-LoadBalancingHelper::IncNodeLoad (uint32_t context)
-{
-  m_application->IncNodeLoad (context);
-}
-
 } /* namespace ns3 */

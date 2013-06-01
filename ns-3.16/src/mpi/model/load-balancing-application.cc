@@ -8,6 +8,7 @@
 #include "load-balancing-application.h"
 #include "ns3/log.h"
 #include "ns3/simulator.h"
+#include "ns3/onoff-application.h"
 #include "ns3/node-container.h"
 #include "ns3/node-list.h"
 #include "ns3/channel.h"
@@ -16,6 +17,7 @@
 #include <boost/graph/adj_list_serialize.hpp>
 #include <utility>
 #include <sstream>
+
 
 #include "lso_cluster_func.hpp"
 
@@ -91,20 +93,6 @@ LoadBalancingApplication::SetReclusteringInterval (Time reclusteringInterval)
 {
   NS_LOG_FUNCTION (this << reclusteringInterval);
   m_reclusteringInterval = reclusteringInterval;
-}
-
-void
-LoadBalancingApplication::IncNodeLoad (uint32_t context)
-{
-  if ((context >= 0) && (context < m_networkGraphVertexMap.size ()))
-  {
-    boost::put(boost::vertex_color,
-               m_networkGraph,
-               m_networkGraphVertexMap[context],
-               boost::get(boost::vertex_color,
-                          m_networkGraph,
-                          m_networkGraphVertexMap[context]) + 1);
-  }
 }
 
 void
@@ -195,83 +183,109 @@ void LoadBalancingApplication::Reclustering ()
 void
 LoadBalancingApplication::CreateNetworkGraph (void)
 {
-  NodeContainer node_container =  NodeContainer::GetGlobal();
-  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
-    {
-      m_networkGraphVertexMap[(*it)->GetId()] = boost::add_vertex(m_networkGraph);
-      boost::put(boost::vertex_name, m_networkGraph, m_networkGraphVertexMap[(*it)->GetId()], (*it)->GetId());
-    }
+
+  MPI_Comm comm;
+
+  NodeContainer node_container =  NodeContainer::GetGlobal ();
+  m_networkGraph.gnvtxs = node_container.GetN ();
+
+  m_networkGraph.vtxdist = new parmetis_idx_t [m_mpiNumProcesses + 1];
+  m_networkGraph.vtxdist[0] = 0;
+  for (int i = 0, k = m_networkGraph.gnvtxs; i < m_mpiNumProcesses; i++) {
+    int l = k / (m_mpiNumProcesses - i);
+    m_networkGraph.vtxdist[i + 1] = m_networkGraph.vtxdist[i] + l;
+    k -= l;
+  }
+
+  parmetis_idx_t nvtxs = m_networkGraph.vtxdist[m_mpiProcessId + 1] - m_networkGraph.vtxdist[m_mpiProcessId];
+  m_networkGraph.xadj = new parmetis_idx_t [nvtxs + 1];
+  m_networkGraph.vwgt = new parmetis_idx_t [nvtxs];
+
+  m_networkGraph.gnedges = 0;
 
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
-      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+      if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId + 1]))
         {
-          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
-          // only works for p2p links currently
-          if (!localNetDevice->IsPointToPoint ())
-            {
-              continue;
-            }
-          Ptr<Channel> channel = localNetDevice->GetChannel ();
-          if (channel == 0)
-            {
-              continue;
-            }
+    	  m_networkGraph.vwgt[(*it)->GetId()] = (*it)->GetLoad();
 
-          // grab the adjacent node
-          Ptr<Node> remoteNode;
-          if (channel->GetDevice (1) == localNetDevice)
+          for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
             {
-               remoteNode = (channel->GetDevice (0))->GetNode ();
-               TimeValue delay;
-               channel->GetAttribute ("Delay", delay);
-               boost::add_edge (m_networkGraphVertexMap[(*it)->GetId ()],
-                                m_networkGraphVertexMap[remoteNode->GetId ()],
-                                m_networkGraph);
-             }
+              Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
+              if (!localNetDevice->IsPointToPoint ()) continue;
+              Ptr<Channel> channel = localNetDevice->GetChannel ();
+              if (channel == 0) continue;
+              m_networkGraph.gnedges++;
+            }
+          m_networkGraph.xadj[(*it)->GetId()] = m_networkGraph.gnedges;
         }
     }
+
+  m_networkGraph.adjncy = new parmetis_idx_t[m_networkGraph.xadj[nvtxs]];
+  m_networkGraph.adjwgt = new parmetis_idx_t[m_networkGraph.xadj[nvtxs]];
+
+  int current_edge = 0;
+  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+    {
+      if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId + 1]))
+        {
+    	  m_networkGraph.vwgt[(*it)->GetId()] = (*it)->GetLoad();
+
+          for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+            {
+              Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
+              if (!localNetDevice->IsPointToPoint ()) continue;
+              Ptr<Channel> channel = localNetDevice->GetChannel ();
+              if (channel == 0) continue;
+              int id = (channel->GetDevice (1) == localNetDevice) ? 0 : 1;
+              m_networkGraph.adjncy[current_edge] = (channel->GetDevice (id))->GetNode ()->GetId ();
+              m_networkGraph.adjwgt[current_edge++] = channel->GetTraffic();
+            }
+        }
+    }
+
+  m_networkGraph. nparts = m_mpiNumProcesses;
+  m_networkGraph.tpwgts = new parmetis_real_t[m_networkGraph.nparts];
+  parmetis_real_t tpw = 1.0/(parmetis_real_t)m_networkGraph.nparts;
+
+  for (int i = 0; i < m_networkGraph.nparts; i++) {
+	  m_networkGraph.tpwgts[i] =tpw;
+  }
+
+  m_networkGraph.part = new parmetis_idx_t[m_networkGraph.gnvtxs];
+
+  ParMETIS_V3_PartKway(m_networkGraph.vtxdist, m_networkGraph.xadj, m_networkGraph.adjncy, m_networkGraph.vwgt,
+		  m_networkGraph.adjwgt, &m_networkGraph.wgtflag, &m_networkGraph.numflag,
+		  &m_networkGraph.ncon, &m_networkGraph.nparts, m_networkGraph.tpwgts, m_networkGraph.ubvec,
+		  m_networkGraph.options, &m_networkGraph.edgecut, m_networkGraph.part, &comm);
 }
 
 void
 LoadBalancingApplication::UpdateNetworkGraph ()
 {
   NodeContainer node_container =  NodeContainer::GetGlobal();
+
+  int current_edge = 0;
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
-      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+      if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId + 1]))
         {
-
-          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
-
-          if (!localNetDevice->IsPointToPoint ())
+           m_networkGraph.vwgt[(*it)->GetId()] = (*it)->GetLoad();
+          for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
             {
-              continue;
+              Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
+              if (!localNetDevice->IsPointToPoint ()) continue;
+              Ptr<Channel> channel = localNetDevice->GetChannel ();
+              if (channel == 0) continue;
+              m_networkGraph.adjwgt[current_edge++] = channel->GetTraffic();
             }
-          Ptr<Channel> channel = localNetDevice->GetChannel ();
-          if (channel == 0)
-            {
-              continue;
-            }
-
-          Ptr<Node> remoteNode;
-          if (channel->GetDevice (1) == localNetDevice)
-            {
-              remoteNode = (channel->GetDevice (0))->GetNode ();
-              boost::put (boost::edge_weight,
-                          m_networkGraph,
-                          boost::edge(m_networkGraphVertexMap[(*it)->GetId ()], m_networkGraphVertexMap[remoteNode->GetId ()], m_networkGraph).first,
-                          channel->GetTraffic ()
-              );
-            }
-
-          }
-      }
+        }
+    }
 }
 
 void
 LoadBalancingApplication::WriteNetworkGraph (const std::string& filename)
-{
+{/*
   std::ofstream graphStream((filename +
                              std::string("_").c_str() +
                              boost::lexical_cast<std::string>(MpiInterface::GetSystemId()) +
@@ -281,25 +295,25 @@ LoadBalancingApplication::WriteNetworkGraph (const std::string& filename)
 
   boost::dynamic_properties dp;
 
-  boost::property_map<graph_t, boost::vertex_index_t>::type name =
+  boost::property_map<graph_t2, boost::vertex_index_t>::type name =
   boost::get(boost::vertex_index, m_networkGraph);
   dp.property("node_id", name);
 
-  boost::property_map<graph_t, boost::vertex_color_t>::type color =
+  boost::property_map<graph_t2, boost::vertex_color_t>::type color =
   boost::get(boost::vertex_color, m_networkGraph);
   dp.property("label", color);
 
-  boost::property_map<graph_t, boost::edge_weight_t>::type weight =
+  boost::property_map<graph_t2, boost::edge_weight_t>::type weight =
   boost::get(boost::edge_weight, m_networkGraph);
   dp.property("label", weight);
 
-  boost::write_graphviz_dp(graphStream, m_networkGraph, dp);
+  boost::write_graphviz_dp(graphStream, m_networkGraph, dp);*/
 }
 
 void
 LoadBalancingApplication::MergeNetworkGraph ()
 {
-  UpdateNetworkGraph ();
+ /* UpdateNetworkGraph ();
 
   if (m_mpiProcessId != 0)
   {
@@ -404,17 +418,9 @@ LoadBalancingApplication::MergeNetworkGraph ()
       Ptr<Node> nodeForMoving = NodeList::GetNode (node_for_moving.context);
       nodeForMoving-> SetSystemId (node_for_moving.new_cluster);
 
-      std::vector< std::string > applicationsType;
-      std::vector<Ptr<Application> > nodeApplications = nodeForMoving->GetApplications ();
-
-      for (uint32_t i = 0; i < nodeApplications.size (); ++i)
-      {
-    	  applicationsType.push_back(nodeApplications[i]->GetInstanceTypeId ().GetName ());
-      }
-
       apllications_for_moving_t applications;
       applications.context = node_for_moving.context;
-      applications.appliations = applicationsType;
+      applications.appliations = nodeForMoving->GetApplications ();
       global_value_applications v_applications(node_for_moving.new_cluster, applications);
       m_mpiApplicationsQueue->push (v_applications);
     }
@@ -428,26 +434,24 @@ LoadBalancingApplication::MergeNetworkGraph ()
 
       Ptr<Node> nodeForMoving = NodeList::GetNode (apllications_for_moving.context);
 
-      std::vector< std::string > applications = apllications_for_moving.appliations;
+      std::vector< Ptr<Application> > applications = apllications_for_moving.appliations;
 
       for (uint32_t i = 0; i < applications.size(); ++i)
       {
-        ObjectFactory objectFactory;
-        objectFactory.SetTypeId (TypeId::LookupByName (applications[i]) );
-        Ptr<Application> application = objectFactory.Create<Application> ();
-        application-> SetStartTime (Simulator::Now());
-        application-> Start ();
-        nodeForMoving->AddApplication (application);
+        applications[i]-> SetStartTime (Simulator::Now());
+        applications[i]-> Start ();
+        nodeForMoving->AddApplication (applications[i]);
       }
     }
-  synchronize(m_mpiProcessGroup);
+  synchronize(m_mpiProcessGroup);*/
 }
 
 void
 LoadBalancingApplication::ClusterNetworkGraph ()
 {
 
-  {
+	//idxtype *vtxdist, *xadj, *adjncy, *vwgt, *vsize, *adjwgt, *part;
+ /* {
     std::ofstream clusterGraphStream (std::string ("example.txt").c_str ());
 
     graph_edge_iterator st, en;
@@ -469,7 +473,8 @@ LoadBalancingApplication::ClusterNetworkGraph ()
   char const *num_clusters_char = num_clusters_string.c_str ();
 
   const char* argv[] = {"example.txt", "--loss",
-                       /*"rcut","infomap",*/ "ncut", /*"modularity",*/
+                       //"rcut","infomap",
+		  	  	  	  "ncut",// "modularity",
                        "--num_clusters", num_clusters_char, NULL};
 
   int argc = sizeof (argv) / sizeof (char*) - 1;
@@ -489,8 +494,8 @@ LoadBalancingApplication::ClusterNetworkGraph ()
     {
       uint32_t old_cluster = NodeList::GetNode (i)-> GetSystemId ();
       uint32_t new_cluster = runner.clustering[i];
-      if (old_cluster != new_cluster)
-      {
+      //if (old_cluster != new_cluster)
+      //{
          node_for_moving_t node_for_moving;
          node_for_moving.context = i;
          node_for_moving.old_cluster = old_cluster;
@@ -502,7 +507,7 @@ LoadBalancingApplication::ClusterNetworkGraph ()
                      m_networkGraph,
                      boost::vertex (i, m_networkGraph),
                      new_cluster);
-      }
+      //}
     }
 
     for (uint32_t i = 0; i < nodes_for_moving.size(); ++i)
@@ -525,7 +530,7 @@ LoadBalancingApplication::ClusterNetworkGraph ()
 
   WriteClusterGraph (std::string("cluster"));
 
-/*
+
   // get border network nodes
 
   // border nodes
@@ -576,7 +581,7 @@ LoadBalancingApplication::ClusterNetworkGraph ()
 void
 LoadBalancingApplication::WriteClusterGraph (const std::string& filename)
 {
-  std::ofstream graphStream((filename +
+/*  std::ofstream graphStream((filename +
                              std::string("_").c_str() +
                              boost::lexical_cast<std::string>(MpiInterface::GetSystemId()) +
                              std::string("_").c_str() +
@@ -585,15 +590,15 @@ LoadBalancingApplication::WriteClusterGraph (const std::string& filename)
 
   boost::dynamic_properties dp;
 
-  boost::property_map<graph_t, boost::vertex_name_t>::type name =
+  boost::property_map<graph_t2, boost::vertex_name_t>::type name =
   boost::get(boost::vertex_name, m_networkGraph);
   dp.property("node_id", name);
 
-  boost::property_map<graph_t, boost::vertex_distance_t>::type distance =
+  boost::property_map<graph_t2, boost::vertex_distance_t>::type distance =
   boost::get(boost::vertex_distance, m_networkGraph);
   dp.property("label", distance);
 
-  boost::write_graphviz_dp(graphStream, m_networkGraph, dp);
+  boost::write_graphviz_dp(graphStream, m_networkGraph, dp);*/
 
 }
 

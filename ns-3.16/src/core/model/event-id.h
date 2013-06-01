@@ -74,6 +74,13 @@ public:
   uint64_t GetTs (void) const;
   uint32_t GetContext (void) const;
   uint32_t GetUid (void) const;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & m_eventImpl & m_ts & m_context & m_uid;
+  }
+
 private:
   friend bool operator == (const EventId &a, const EventId &b);
   Ptr<EventImpl> m_eventImpl;

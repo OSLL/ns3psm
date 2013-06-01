@@ -9,21 +9,29 @@
 #define LOAD_BALANCING_APPLICATION_H_
 
 #include "ns3/application.h"
+
 #include "ns3/event-id.h"
+#include "ns3/onoff-application.h"
 
 #include <boost/graph/use_mpi.hpp>
 #include <boost/pending/queue.hpp>
 #include <boost/property_map/property_map.hpp>
 #include <boost/graph/adjacency_list.hpp>
-#include <boost/serialization/version.hpp>
+
 #include <boost/serialization/serialization.hpp>
+#include <boost/serialization/vector.hpp>
 
 #include <boost/graph/distributed/mpi_process_group.hpp>
 #include <boost/graph/distributed/queue.hpp>
 
+#include <boost/serialization/split_free.hpp>
+#include <boost/serialization/nvp.hpp>
+
+#include <parmetis.h>
+
 namespace ns3 {
 
-// vertex_name - for reading from dot
+/*// vertex_name - for reading from dot
 // vertex_color - load
 // vertex_distance - # cluster node
 typedef boost::property < boost::vertex_name_t, uint32_t, boost::property < boost::vertex_color_t, uint32_t, boost::property < boost::vertex_distance_t, uint32_t > > > vertex_p;
@@ -37,16 +45,58 @@ typedef boost::adjacency_list <
                     boost::undirectedS,
                     vertex_p,
                     edge_p
-> graph_t; //graph type
+> graph_t2; //graph type
 
-typedef boost::graph_traits< graph_t >::vertex_descriptor vertex_descriptor;
-typedef boost::graph_traits< graph_t >::edge_descriptor edge_descriptor;
-typedef boost::graph_traits< graph_t >::adjacency_iterator graph_adjacency_iterator;
-typedef boost::graph_traits< graph_t >::vertex_iterator graph_vertex_iterator;
-typedef boost::graph_traits< graph_t >::edge_iterator graph_edge_iterator;
+typedef boost:: graph_traits<  graph_t2 >::vertex_descriptor vertex_descriptor;
+typedef boost::graph_traits<  graph_t2 >::edge_descriptor edge_descriptor;
+typedef boost::graph_traits<  graph_t2 >::adjacency_iterator graph_adjacency_iterator;
+typedef boost::graph_traits<  graph_t2 >::vertex_iterator graph_vertex_iterator;
+typedef boost::graph_traits<  graph_t2 >::edge_iterator graph_edge_iterator;*/
 
 typedef boost::graph::distributed::mpi_process_group process_group;
 typedef boost::graph::distributed::mpi_process_group::process_id_type process_id_type;
+
+typedef idx_t parmetis_idx_t;
+typedef real_t parmetis_real_t;
+
+struct graph_t
+{
+  int gnvtxs, gnedges;
+  parmetis_idx_t* vtxdist;
+  parmetis_idx_t* xadj;
+  parmetis_idx_t* adjncy;
+  parmetis_idx_t* vwgt;
+  parmetis_idx_t* adjwgt;
+  parmetis_idx_t nparts;
+  parmetis_real_t* tpwgts;
+  parmetis_idx_t* part;
+
+  parmetis_idx_t wgtflag;
+  parmetis_idx_t numflag;
+  parmetis_idx_t ncon;
+  parmetis_real_t* ubvec;
+  parmetis_idx_t* options;
+  parmetis_idx_t edgecut;
+
+
+  graph_t()
+    {
+	  wgtflag = 0;
+	  numflag = 3;
+	  ncon = 1;
+
+	  options = new parmetis_idx_t[3];
+	  options[0] = 1;
+	  options[1] = 3;
+	  options[2] = 1;
+
+	  ubvec = new parmetis_real_t[1];
+	  ubvec[0] = 1.05;
+
+	  edgecut = 0;
+
+    }
+};
 
 struct node_for_moving_t
 {
@@ -58,20 +108,20 @@ struct node_for_moving_t
 struct apllications_for_moving_t
 {
   uint32_t context;
-  std::vector< std::string > appliations;
+  std::vector< Ptr<Application> > appliations;
 };
 
 struct global_value_graph {
 
     global_value_graph() {processor = -1;}
-    global_value_graph(int processor, graph_t graph) : processor(processor), value(graph) { }
+    global_value_graph(int processor,  graph_t graph) : processor(processor), value(graph) { }
 
     int processor;
     graph_t value;
 
     template<class Archiver>
     void serialize(Archiver& ar, const unsigned int) {
-      ar & processor & value;
+      ar & processor /*& value*/;
     }
 };
 
@@ -89,18 +139,14 @@ struct global_value_node {
     }
 };
 
-struct global_value_applications {
+class global_value_applications {
 
+public:
     global_value_applications() {processor = -1;}
     global_value_applications(int processor, apllications_for_moving_t applications) : processor(processor), value(applications) { }
 
     int processor;
     apllications_for_moving_t value;
-
-    template<class Archiver>
-    void serialize(Archiver& ar, const unsigned int) {
-      ar & processor & value.context & value.appliations;
-    }
 };
 
 struct global_value_owner_map_graph
@@ -160,7 +206,6 @@ public:
 
   void Init (void);
   void SetReclusteringInterval (Time reclusteringInterval);
-  void IncNodeLoad (uint32_t context);
 
 protected:
   virtual void DoDispose (void);
@@ -203,7 +248,7 @@ private:
   // network graph
   graph_t m_networkGraph;
   // map: network node context -> graph vertex description
-  std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
+  //std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
   // summary cluster load (not used now)
   uint32_t m_clusterLoad;
 
@@ -221,4 +266,59 @@ private:
 };
 
 } /* namespace ns3 */
+
+namespace boost {
+namespace serialization {
+
+template <typename Archive>
+void save(Archive& ar, const ns3::global_value_applications& object, const unsigned int version)
+{
+    ar << BOOST_SERIALIZATION_NVP(object.processor);
+    ar << BOOST_SERIALIZATION_NVP(object.value.context);
+    size_t size = object.value.appliations.size();
+    ar << BOOST_SERIALIZATION_NVP(size);
+
+    //ar.template register_type< ns3::Application >();
+
+
+    //for (uint32_t i = 0; i < object.value.appliations.size (); ++i) {
+      ns3::Application* app = GetPointer (object.value.appliations[0]);
+      ar.register_type(&(*app));
+      std::cout << app->GetInstanceTypeId() << std::endl;
+      std::cout << "ololo1" << std::endl;
+      ar << BOOST_SERIALIZATION_NVP(app);
+      std::cout << "ololo2" << std::endl;
+    //}
+
+}
+
+template <typename Archive>
+void load(Archive& ar, ns3::global_value_applications& object, const unsigned int version)
+{
+  ar >> object.processor;
+  ar >> object.value.context;
+  size_t size;
+  ar >> size;
+  object.value.appliations.resize(size);
+  ns3::Application* app;
+  for (size_t i = 0; i < size; ++i) {
+    ar >> app;
+    object.value.appliations[i] = ns3::Ptr< ns3::Application >(app);
+  }
+}
+
+template<class Archive, class T>
+inline void serialize(
+    Archive & ar,
+    ns3::global_value_applications& object,
+    const unsigned int file_version
+){
+    boost::serialization::split_free(ar, object, file_version);
+}
+
+}} //namespace brackets
+
+BOOST_SERIALIZATION_SPLIT_FREE(ns3::global_value_applications)
+
+
 #endif /* LOAD_BALANCING_APPLICATION_H_ */

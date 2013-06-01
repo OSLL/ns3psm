@@ -28,6 +28,12 @@
 #include "ns3/ptr.h"
 #include "ns3/address.h"
 #include "packet-loss-counter.h"
+
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/type_info_implementation.hpp>
+#include <boost/serialization/extended_type_info_typeid.hpp>
+
 namespace ns3 {
 /**
  * \ingroup applications
@@ -44,6 +50,8 @@ namespace ns3 {
  */
 class UdpServer : public Application
 {
+	friend class boost::serialization::access;
+
 public:
   static TypeId GetTypeId (void);
   UdpServer ();
@@ -72,6 +80,26 @@ public:
    *  be a multiple of 8
    */
   void SetPacketWindowSize (uint16_t size);
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    std::cout << "serializ udpserver" << std::endl;
+    ar & boost::serialization::base_object<Application>(*this);
+    //ar & m_peer;
+    //ar & m_connected;
+    //ar & m_onTime;
+    //ar & m_offTime;
+    //ar & m_cbrRate;
+    //ar & m_pktSize;
+    //ar & m_residualBits;
+    //ar & m_lastStartTime;
+    //ar & m_maxBytes;
+    //ar & m_totBytes;
+    //ar & m_startStopEvent;
+    //ar & m_sendEvent;
+    //ar & m_sending;
+  }
+
 protected:
   virtual void DoDispose (void);
 
@@ -91,5 +119,12 @@ private:
 };
 
 } // namespace ns3
+
+BOOST_CLASS_EXPORT_KEY(ns3::UdpServer);
+
+BOOST_CLASS_TYPE_INFO(
+    ns3::UdpServer,
+    boost::serialization::extended_type_info_typeid<ns3::UdpServer>
+);
 
 #endif /* UDP_SERVER_H */

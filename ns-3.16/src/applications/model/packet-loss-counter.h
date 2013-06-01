@@ -42,6 +42,7 @@ public:
   uint32_t GetLost (void) const;
   uint16_t GetBitMapSize (void) const;
   void SetBitMapSize (uint16_t size);
+
 private:
   bool GetBit (uint32_t seqNum);
   void SetBit (uint32_t seqNum, bool val);

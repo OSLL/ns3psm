@@ -30,6 +30,8 @@
 #include "object.h"
 #include "attribute-helper.h"
 #include <stdint.h>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/vector.hpp>
 
 namespace ns3 {
 
@@ -99,6 +101,11 @@ public:
    */
   virtual uint32_t GetInteger (void) = 0;
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & m_rng & m_isAntithetic & m_stream;
+  }
+
 protected:
   /**
    * \brief Returns a pointer to the underlying RNG stream.
@@ -137,11 +144,11 @@ private:
  * \code
  *   double min = 0.0;
  *   double max = 10.0;
- *  
+ *
  *   Ptr<UniformRandomVariable> x = CreateObject<UniformRandomVariable> ();
  *   x->SetAttribute ("Min", DoubleValue (min));
  *   x->SetAttribute ("Max", DoubleValue (max));
- * 
+ *
  *   // The values returned by a uniformly distributed random
  *   // variable should always be within the range
  *   //
@@ -256,6 +263,13 @@ public:
    * upper bound.
    */
   virtual uint32_t GetInteger (void);
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_min & m_max;
+  }
+
 private:
   /// The lower bound on values that can be returned by this RNG stream.
   double m_min;
@@ -308,6 +322,12 @@ public:
    * \return Integer cast of the constant value returned by this RNG stream.
    */
   virtual uint32_t GetInteger (void);
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_constant;
+  }
 
 private:
   /// The constant value returned by this RNG stream.
@@ -379,6 +399,12 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_min & m_max & m_increment & m_consecutive & m_current & m_currentConsecutive & m_isCurrentSet;
+  }
+
 private:
   /// The first value of the sequence.
   double m_min;
@@ -427,11 +453,11 @@ private:
  * \code
  *   double mean = 3.14;
  *   double bound = 0.0;
- *  
+ *
  *   Ptr<ExponentialRandomVariable> x = CreateObject<ExponentialRandomVariable> ();
  *   x->SetAttribute ("Mean", DoubleValue (mean));
  *   x->SetAttribute ("Bound", DoubleValue (bound));
- * 
+ *
  *   // The expected value for the mean of the values returned by an
  *   // exponentially distributed random variable is equal to mean.
  *   double value = x->GetValue ();
@@ -471,7 +497,7 @@ public:
    * over [0,1] and
    *
    *    \f[
-   *         x = - mean * \log(u) 
+   *         x = - mean * \log(u)
    *    \f]
    *
    * is a value that would be returned normally, then \f$(1 - u\f$) is
@@ -479,7 +505,7 @@ public:
    * returned in the antithetic case, \f$x'\f$, is calculated as
    *
    *    \f[
-   *         x' = - mean * \log(1 - u), 
+   *         x' = - mean * \log(1 - u),
    *    \f]
    *
    * which now involves the log of the distance \f$u\f$ is from the 1.
@@ -497,7 +523,7 @@ public:
    * over [0,1] and
    *
    *    \f[
-   *         x = - mean * \log(u) 
+   *         x = - mean * \log(u)
    *    \f]
    *
    * is a value that would be returned normally, then \f$(1 - u\f$) is
@@ -505,7 +531,7 @@ public:
    * returned in the antithetic case, \f$x'\f$, is calculated as
    *
    *    \f[
-   *         x' = - mean * \log(1 - u), 
+   *         x' = - mean * \log(1 - u),
    *    \f]
    *
    * which now involves the log of the distance \f$u\f$ is from the 1.
@@ -521,7 +547,7 @@ public:
    * over [0,1] and
    *
    *    \f[
-   *         x = - mean * \log(u) 
+   *         x = - mean * \log(u)
    *    \f]
    *
    * is a value that would be returned normally, then \f$(1 - u\f$) is
@@ -529,7 +555,7 @@ public:
    * returned in the antithetic case, \f$x'\f$, is calculated as
    *
    *    \f[
-   *         x' = - mean * \log(1 - u), 
+   *         x' = - mean * \log(1 - u),
    *    \f]
    *
    * which now involves the log of the distance \f$u\f$ is from the 1.
@@ -550,7 +576,7 @@ public:
    * over [0,1] and
    *
    *    \f[
-   *         x = - mean * \log(u) 
+   *         x = - mean * \log(u)
    *    \f]
    *
    * is a value that would be returned normally, then \f$(1 - u\f$) is
@@ -558,12 +584,18 @@ public:
    * returned in the antithetic case, \f$x'\f$, is calculated as
    *
    *    \f[
-   *         x' = - mean * \log(1 - u), 
+   *         x' = - mean * \log(1 - u),
    *    \f]
    *
    * which now involves the log of the distance \f$u\f$ is from the 1.
    */
   virtual uint32_t GetInteger (void);
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_mean & m_bound;
+  }
 
 private:
   /// The mean value of the random variables returned by this RNG stream.
@@ -598,20 +630,20 @@ private:
  * \code
  *   double mean = 5.0;
  *   double shape = 2.0;
- * 
+ *
  *   Ptr<ParetoRandomVariable> x = CreateObject<ParetoRandomVariable> ();
  *   x->SetAttribute ("Mean", DoubleValue (mean));
  *   x->SetAttribute ("Shape", DoubleValue (shape));
- * 
+ *
  *   // The expected value for the mean of the values returned by a
  *   // Pareto distributed random variable is
  *   //
  *   //                   shape * scale
  *   //     E[value]  =  ---------------  ,
  *   //                     shape - 1
- *   // 
+ *   //
  *   // where
- *   // 
+ *   //
  *   //     scale  =  mean * (shape - 1.0) / shape .
  *   //
  *   double value = x->GetValue ();
@@ -662,11 +694,11 @@ public:
    *    \f]
    *
    * is a value that would be returned normally, where
-   *     
+   *
    *    \f[
    *         scale  =  mean * (shape - 1.0) / shape  .
    *    \f]
-   *    
+   *
    * Then \f$(1 - u\f$) is the distance that \f$u\f$ would be from
    * \f$1\f$.  The value returned in the antithetic case, \f$x'\f$, is
    * calculated as
@@ -695,11 +727,11 @@ public:
    *    \f]
    *
    * is a value that would be returned normally, where
-   *     
+   *
    *    \f[
    *         scale  =  mean * (shape - 1.0) / shape  .
    *    \f]
-   *    
+   *
    * Then \f$(1 - u\f$) is the distance that \f$u\f$ would be from
    * \f$1\f$.  The value returned in the antithetic case, \f$x'\f$, is
    * calculated as
@@ -725,11 +757,11 @@ public:
    *    \f]
    *
    * is a value that would be returned normally, where
-   *     
+   *
    *    \f[
    *         scale  =  mean * (shape - 1.0) / shape  .
    *    \f]
-   *    
+   *
    * Then \f$(1 - u\f$) is the distance that \f$u\f$ would be from
    * \f$1\f$.  The value returned in the antithetic case, \f$x'\f$, is
    * calculated as
@@ -760,11 +792,11 @@ public:
    *    \f]
    *
    * is a value that would be returned normally, where
-   *     
+   *
    *    \f[
    *         scale  =  mean * (shape - 1.0) / shape  .
    *    \f]
-   *    
+   *
    * Then \f$(1 - u\f$) is the distance that \f$u\f$ would be from
    * \f$1\f$.  The value returned in the antithetic case, \f$x'\f$, is
    * calculated as
@@ -776,6 +808,12 @@ public:
    * which now involves the distance \f$u\f$ is from 1 in the denonator.
    */
   virtual uint32_t GetInteger (void);
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_mean & m_shape & m_bound;
+  }
 
 private:
   /// The mean parameter for the Pareto distribution returned by this RNG stream.
@@ -811,20 +849,20 @@ private:
  * \code
  *   double scale = 5.0;
  *   double shape = 1.0;
- * 
+ *
  *   Ptr<WeibullRandomVariable> x = CreateObject<WeibullRandomVariable> ();
  *   x->SetAttribute ("Scale", DoubleValue (scale));
  *   x->SetAttribute ("Shape", DoubleValue (shape));
- * 
+ *
  *   // The expected value for the mean of the values returned by a
  *   // Weibull distributed random variable is
  *   //
  *   //     E[value]  =  scale * Gamma(1 + 1 / shape)  ,
- *   //               
- *   // where Gamma() is the Gamma function.  Note that 
- *   //               
+ *   //
+ *   // where Gamma() is the Gamma function.  Note that
+ *   //
  *   //     Gamma(n)  =  (n - 1)!
- *   //               
+ *   //
  *   // if n is a positive integer.
  *   //
  *   // For this example,
@@ -837,7 +875,7 @@ private:
  *   // which means
  *   //
  *   //     E[value]  =  scale  .
- *   //               
+ *   //
  *   double value = x->GetValue ();
  * \endcode
  */
@@ -977,6 +1015,12 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_scale & m_shape & m_bound;
+  }
+
 private:
   /// The scale parameter for the Weibull distribution returned by this RNG stream.
   double m_scale;
@@ -1011,11 +1055,11 @@ private:
  * \code
  *   double mean = 5.0;
  *   double variance = 2.0;
- *   
+ *
  *   Ptr<NormalRandomVariable> x = CreateObject<NormalRandomVariable> ();
  *   x->SetAttribute ("Mean", DoubleValue (mean));
  *   x->SetAttribute ("Variance", DoubleValue (variance));
- *   
+ *
  *   // The expected value for the mean of the values returned by a
  *   // normally distributed random variable is equal to mean.
  *   double value = x->GetValue ();
@@ -1203,6 +1247,12 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_mean & m_variance & m_bound & m_nextValid & m_next;
+  }
+
 private:
   /// The mean value for the normal distribution returned by this RNG stream.
   double m_mean;
@@ -1248,13 +1298,13 @@ private:
  * \code
  *   double mu = 5.0;
  *   double sigma = 2.0;
- *   
+ *
  *   Ptr<LogNormalRandomVariable> x = CreateObject<LogNormalRandomVariable> ();
  *   x->SetAttribute ("Mu", DoubleValue (mu));
  *   x->SetAttribute ("Sigma", DoubleValue (sigma));
- *   
+ *
  *   // The expected value for the mean of the values returned by a
- *   // log-normally distributed random variable is equal to 
+ *   // log-normally distributed random variable is equal to
  *   //
  *   //                             2
  *   //                   mu + sigma  / 2
@@ -1427,6 +1477,12 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_mu & m_sigma;
+  }
+
 private:
   /// The mu value for the log-normal distribution returned by this RNG stream.
   double m_mu;
@@ -1453,13 +1509,13 @@ private:
  * \code
  *   double alpha = 5.0;
  *   double beta = 2.0;
- *   
+ *
  *   Ptr<GammaRandomVariable> x = CreateObject<GammaRandomVariable> ();
  *   x->SetAttribute ("Alpha", DoubleValue (alpha));
  *   x->SetAttribute ("Beta", DoubleValue (beta));
- *   
+ *
  *   // The expected value for the mean of the values returned by a
- *   // gammaly distributed random variable is equal to 
+ *   // gammaly distributed random variable is equal to
  *   //
  *   //     E[value]  =  alpha * beta  .
  *   //
@@ -1550,6 +1606,12 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_alpha & m_beta & m_nextValid & m_next;
+  }
+
 private:
   /**
    * \brief Returns a random double from a normal distribution with the specified mean, variance, and bound.
@@ -1625,13 +1687,13 @@ private:
  * \code
  *   uint32_t k = 5;
  *   double lambda = 2.0;
- *   
+ *
  *   Ptr<ErlangRandomVariable> x = CreateObject<ErlangRandomVariable> ();
  *   x->SetAttribute ("K", IntegerValue (k));
  *   x->SetAttribute ("Lambda", DoubleValue (lambda));
- *   
+ *
  *   // The expected value for the mean of the values returned by a
- *   // Erlangly distributed random variable is equal to 
+ *   // Erlangly distributed random variable is equal to
  *   //
  *   //     E[value]  =  k * lambda  .
  *   //
@@ -1722,6 +1784,13 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_k & m_lambda;
+  }
+
 private:
   /**
    * \brief Returns a random double from an exponential distribution with the specified mean and upper bound.
@@ -1734,7 +1803,7 @@ private:
    * over [0,1] and
    *
    *    \f[
-   *         x = - mean * \log(u) 
+   *         x = - mean * \log(u)
    *    \f]
    *
    * is a value that would be returned normally, then \f$(1 - u\f$) is
@@ -1742,7 +1811,7 @@ private:
    * returned in the antithetic case, \f$x'\f$, is calculated as
    *
    *    \f[
-   *         x' = - mean * \log(1 - u), 
+   *         x' = - mean * \log(1 - u),
    *    \f]
    *
    * which now involves the log of the distance \f$u\f$ is from the 1.
@@ -1774,12 +1843,12 @@ private:
  *   double mean = 5.0;
  *   double min = 2.0;
  *   double max = 10.0;
- *   
+ *
  *   Ptr<TriangularRandomVariable> x = CreateObject<TriangularRandomVariable> ();
  *   x->SetAttribute ("Mean", DoubleValue (mean));
  *   x->SetAttribute ("Min", DoubleValue (min));
  *   x->SetAttribute ("Max", DoubleValue (max));
- *   
+ *
  *   // The expected value for the mean of the values returned by a
  *   // triangularly distributed random variable is equal to mean.
  *   double value = x->GetValue ();
@@ -1973,6 +2042,12 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_mean & m_min & m_max & m_mode;
+  }
+
 private:
   /// The mean value for the triangular distribution returned by this RNG stream.
   double m_mean;
@@ -2010,29 +2085,29 @@ private:
  * \code
  *   uint32_t n = 1;
  *   double alpha = 2.0;
- *   
+ *
  *   Ptr<ZipfRandomVariable> x = CreateObject<ZipfRandomVariable> ();
  *   x->SetAttribute ("N", IntegerValue (n));
  *   x->SetAttribute ("Alpha", DoubleValue (alpha));
- *   
+ *
  *   // The expected value for the mean of the values returned by a
- *   // Zipfly distributed random variable is equal to 
+ *   // Zipfly distributed random variable is equal to
  *   //
  *   //                   H
  *   //                    N, alpha - 1
  *   //     E[value]  =  ---------------
  *   //                     H
  *   //                      N, alpha
- *   //                          
+ *   //
  *   // where
  *   //
- *   //                    N   
- *   //                   ---    
+ *   //                    N
+ *   //                   ---
  *   //                   \     -alpha
  *   //     H          =  /    m        .
  *   //      N, alpha     ---
- *   //                   m=1    
- *   //                 
+ *   //                   m=1
+ *   //
  *   // For this test,
  *   //
  *   //                      -(alpha - 1)
@@ -2042,7 +2117,7 @@ private:
  *   //                     1
  *   //
  *   //               =  1  .
- *   //               
+ *   //
  *   double value = x->GetValue ();
  * \endcode
  */
@@ -2130,6 +2205,13 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_n & m_alpha & m_c;
+  }
+
+
 private:
   /// The n value for the Zipf distribution returned by this RNG stream.
   uint32_t m_n;
@@ -2160,23 +2242,23 @@ private:
  * Here is an example of how to use this class:
  * \code
  *   double alpha = 2.0;
- *   
+ *
  *   Ptr<ZetaRandomVariable> x = CreateObject<ZetaRandomVariable> ();
  *   x->SetAttribute ("Alpha", DoubleValue (alpha));
- *   
+ *
  *   // The expected value for the mean of the values returned by a
- *   // zetaly distributed random variable is equal to 
+ *   // zetaly distributed random variable is equal to
  *   //
  *   //                   zeta(alpha - 1)
  *   //     E[value]  =  ---------------   for alpha > 2 ,
  *   //                     zeta(alpha)
- *   //                          
+ *   //
  *   // where zeta(alpha) is the Riemann zeta function.
- *   //                 
+ *   //
  *   // There are no simple analytic forms for the Riemann zeta
  *   // function, which is the reason the known mean of the values
  *   // cannot be calculated in this example.
- *   //               
+ *   //
  *   double value = x->GetValue ();
  * \endcode
  */
@@ -2256,6 +2338,12 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_alpha & m_b;
+  }
+
 private:
   /// The alpha value for the zeta distribution returned by this RNG stream.
   double m_alpha;
@@ -2282,7 +2370,7 @@ private:
  * Here is an example of how to use this class:
  * \code
  *   Ptr<DeterministicRandomVariable> s = CreateObject<DeterministicRandomVariable> ();
- * 
+ *
  *   // The following array should give the sequence
  *   //
  *   //    4, 4, 7, 7, 10, 10 .
@@ -2290,7 +2378,7 @@ private:
  *   double array [] = { 4, 4, 7, 7, 10, 10};
  *   uint64_t count = 6;
  *   s->SetValueArray (array, count);
- * 
+ *
  *   double value = x->GetValue ();
  * \endcode
  */
@@ -2328,6 +2416,12 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & m_count & m_next & m_data;
+  }
+
 private:
   /// Position in the array of values.
   uint64_t   m_count;
@@ -2361,12 +2455,12 @@ private:
  *   x->CDF ( 0.0,  0.0);
  *   x->CDF ( 5.0,  0.5);
  *   x->CDF (10.0,  1.0);
- * 
+ *
  *   // The expected value for the mean of the values returned by this
  *   // empirical distribution is the midpoint of the distribution
  *   //
  *   //     E[value]  =  5 .
- *   //                          
+ *   //
  *   double value = x->GetValue ();
  * \endcode
  */
@@ -2414,6 +2508,12 @@ public:
    */
   virtual uint32_t GetInteger (void);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<RandomVariableStream>(*this);
+    ar & validated & emp;
+  }
+
 private:
   class ValueCDF
   {
@@ -2423,6 +2523,12 @@ public:
     ValueCDF (const ValueCDF& c);
     double value;
     double    cdf;
+
+    template<class Archiver>
+    void serialize(Archiver& ar, const unsigned int) {
+      ar & boost::serialization::base_object<RandomVariableStream>(*this);
+      ar & value & cdf;
+    }
   };
   virtual void Validate ();  // Insure non-decreasing emiprical values
   virtual double Interpolate (double, double, double, double, double);

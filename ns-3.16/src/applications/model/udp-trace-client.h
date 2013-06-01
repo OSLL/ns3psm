@@ -28,6 +28,11 @@
 #include "ns3/ipv4-address.h"
 #include <vector>
 
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/type_info_implementation.hpp>
+#include <boost/serialization/extended_type_info_typeid.hpp>
+
 namespace ns3 {
 
 class Socket;
@@ -52,6 +57,9 @@ class Packet;
  */
 class UdpTraceClient : public Application
 {
+
+	friend class boost::serialization::access;
+
 public:
   static TypeId
   GetTypeId (void);
@@ -103,6 +111,26 @@ public:
    */
   void SetMaxPacketSize (uint16_t maxPacketSize);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    std::cout << "serializ udptraceclient" << std::endl;
+    ar & boost::serialization::base_object<Application>(*this);
+    //ar & m_peer;
+    //ar & m_connected;
+    //ar & m_onTime;
+    //ar & m_offTime;
+    //ar & m_cbrRate;
+    //ar & m_pktSize;
+    //ar & m_residualBits;
+    //ar & m_lastStartTime;
+    //ar & m_maxBytes;
+    //ar & m_totBytes;
+    //ar & m_startStopEvent;
+    //ar & m_sendEvent;
+    //ar & m_sending;
+  }
+
+
 protected:
   virtual void DoDispose (void);
 
@@ -134,5 +162,12 @@ private:
 };
 
 } // namespace ns3
+
+BOOST_CLASS_EXPORT_KEY(ns3::UdpTraceClient);
+
+BOOST_CLASS_TYPE_INFO(
+    ns3::UdpTraceClient,
+    boost::serialization::extended_type_info_typeid<ns3::UdpTraceClient>
+);
 
 #endif /* UDP_TRACE_CLIENT_H */

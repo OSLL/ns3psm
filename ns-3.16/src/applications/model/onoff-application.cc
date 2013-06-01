@@ -41,6 +41,11 @@
 #include "ns3/string.h"
 #include "ns3/pointer.h"
 
+#include <boost/serialization/type_info_implementation.hpp>
+#include <boost/serialization/export.hpp>
+
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::OnOffApplication);
+
 NS_LOG_COMPONENT_DEFINE ("OnOffApplication");
 
 namespace ns3 {
@@ -295,6 +300,5 @@ void OnOffApplication::ConnectionFailed (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
 }
-
 
 } // Namespace ns3

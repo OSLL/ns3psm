@@ -30,6 +30,12 @@
 #include "attribute-construction-list.h"
 #include "simple-ref-count.h"
 
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/assume_abstract.hpp>
+#include <boost/serialization/export.hpp>
+#include <boost/serialization/type_info_implementation.hpp>
+
 
 namespace ns3 {
 
@@ -62,6 +68,7 @@ struct ObjectDeleter
  */
 class Object : public SimpleRefCount<Object,ObjectBase,ObjectDeleter>
 {
+friend class boost::serialization::access;
 public:
   static TypeId GetTypeId (void);
 
@@ -88,6 +95,13 @@ public:
      * \returns the next aggregated object.
      */
     Ptr<const Object> Next (void);
+
+    template<class Archiver>
+    void serialize(Archiver& ar, const unsigned int) {
+      std::cout << "serializ object " << std::endl;
+      //ar & boost::serialization::base_object<Object>(*this);
+    }
+
 private:
     friend class Object;
     AggregateIterator (Ptr<const Object> object);
@@ -301,6 +315,8 @@ private:
   uint32_t m_getObjectCount;
 };
 
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(Object)
+
 /**
  * \param object a pointer to the object to copy.
  * \returns a copy of the input object.
@@ -435,8 +451,10 @@ Ptr<T> CreateObject (T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7)
   return CompleteConstruct (new T (a1,a2,a3,a4,a5,a6,a7));
 }
 
-
 } // namespace ns3
+
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(ns3::Object);
+BOOST_CLASS_EXPORT_KEY(ns3::Object);
 
 #endif /* OBJECT_H */
 

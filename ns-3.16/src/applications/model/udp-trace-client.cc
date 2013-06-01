@@ -35,6 +35,8 @@
 #include <cstdio>
 #include <fstream>
 
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::UdpTraceClient);
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("UdpTraceClient");

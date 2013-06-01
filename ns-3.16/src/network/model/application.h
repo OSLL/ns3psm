@@ -27,6 +27,14 @@
 #include "ns3/ptr.h"
 #include "ns3/node.h"
 
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/assume_abstract.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/type_info_implementation.hpp>
+#include <boost/serialization/extended_type_info_typeid.hpp>
+#include <boost/serialization/extended_type_info_no_rtti.hpp>
+
 namespace ns3 {
 
 class Node;
@@ -60,6 +68,7 @@ class RandomVariable;
 */
 class Application : public Object
 {
+friend class boost::serialization::access;
 public:
   static TypeId GetTypeId (void);
   Application ();
@@ -101,6 +110,18 @@ public:
    */
   void SetNode (Ptr<Node> node);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    std::cout << "serializ appl " << GetInstanceTypeId ().GetName() << std::endl;
+    //ar & boost::serialization::base_object<Object>(*this);
+    //ar & m_startTime & m_stopTime;
+  }
+
+  virtual const char * get_key() const {
+    std::cout << "*** " << GetInstanceTypeId().GetName().c_str();
+    return GetInstanceTypeId().GetName().c_str();
+  }
+
 private:
   /**
    * \brief Application specific startup code
@@ -123,7 +144,7 @@ protected:
   virtual void DoDispose (void);
   virtual void DoStart (void);
 
-  Ptr<Node>       m_node;
+  Ptr<Node> m_node;
   Time m_startTime;
   Time m_stopTime;
   EventId m_startEvent;
@@ -131,5 +152,13 @@ protected:
 };
 
 } // namespace ns3
+
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(ns3::Application);
+BOOST_CLASS_EXPORT_KEY(ns3::Application);
+
+//BOOST_CLASS_TYPE_INFO(
+//    ns3::Application,
+//    boost::serialization::extended_type_info_no_rtti<ns3::Application>
+//);
 
 #endif /* APPLICATION_H */

@@ -27,6 +27,11 @@
 #include "ns3/nstime.h"
 #include "ns3/simulator.h"
 
+#include <boost/serialization/type_info_implementation.hpp>
+#include <boost/serialization/export.hpp>
+
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::Application);
+
 NS_LOG_COMPONENT_DEFINE ("Application");
 
 namespace ns3 {
@@ -125,6 +130,15 @@ void Application::StopApplication ()
   NS_LOG_FUNCTION (this);
 }
 
+/*const char * Application::get_key() const{
+
+	std::cout << "!!!! " << boost::serialization::type_info_implementation<
+            Application
+        >::type::get_const_instance().get_key() << std::endl;
+    return
+        boost::serialization::type_info_implementation<
+            Application
+        >::type::get_const_instance().get_key();
+}*/
+
 } // namespace ns3
-
-

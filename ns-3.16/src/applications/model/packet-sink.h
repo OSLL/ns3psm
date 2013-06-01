@@ -27,6 +27,11 @@
 #include "ns3/traced-callback.h"
 #include "ns3/address.h"
 
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/type_info_implementation.hpp>
+#include <boost/serialization/extended_type_info_no_rtti.hpp>
+
 namespace ns3 {
 
 class Address;
@@ -67,6 +72,8 @@ class Packet;
  */
 class PacketSink : public Application 
 {
+
+	friend class boost::serialization::access;
 public:
   static TypeId GetTypeId (void);
   PacketSink ();
@@ -87,6 +94,25 @@ public:
    * \return list of pointers to accepted sockets
    */
   std::list<Ptr<Socket> > GetAcceptedSockets (void) const;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+	  std::cout << "serializ sink " << std::endl;
+    //ar & boost::serialization::base_object<Application>(*this);
+    //ar & m_peer;
+    //ar & m_connected;
+    //ar & m_onTime;
+    //ar & m_offTime;
+    //ar & m_cbrRate;
+    //ar & m_pktSize;
+    //ar & m_residualBits;
+    //ar & m_lastStartTime;
+    //ar & m_maxBytes;
+    //ar & m_totBytes;
+    //ar & m_startStopEvent;
+    //ar & m_sendEvent;
+    //ar & m_sending;
+  }
  
 protected:
   virtual void DoDispose (void);
@@ -113,6 +139,13 @@ private:
 };
 
 } // namespace ns3
+
+BOOST_CLASS_EXPORT_KEY(ns3::PacketSink);
+//
+//BOOST_CLASS_TYPE_INFO(
+//    ns3::PacketSink,
+//    boost::serialization::extended_type_info_no_rtti<ns3::PacketSink>
+//);
 
 #endif /* PACKET_SINK_H */
 

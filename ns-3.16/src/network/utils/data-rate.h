@@ -105,6 +105,12 @@ public:
    */
   uint64_t GetBitRate () const;
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & m_bps;
+  }
+
 private:
   uint64_t m_bps;
   static uint64_t Parse (const std::string);

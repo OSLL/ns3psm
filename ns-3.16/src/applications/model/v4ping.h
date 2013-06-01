@@ -23,6 +23,12 @@
 #include "ns3/simulator.h"
 #include <map>
 
+
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/type_info_implementation.hpp>
+#include <boost/serialization/extended_type_info_typeid.hpp>
+
 namespace ns3 {
 
 class Socket;
@@ -35,6 +41,9 @@ class Socket;
  */
 class V4Ping : public Application
 {
+
+	friend class boost::serialization::access;
+
 public:
   static TypeId GetTypeId (void);
 
@@ -43,6 +52,25 @@ public:
    */
   V4Ping ();
   virtual ~V4Ping ();
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    std::cout << "serializ v4ping" << std::endl;
+    ar & boost::serialization::base_object<Application>(*this);
+    //ar & m_peer;
+    //ar & m_connected;
+    //ar & m_onTime;
+    //ar & m_offTime;
+    //ar & m_cbrRate;
+    //ar & m_pktSize;
+    //ar & m_residualBits;
+    //ar & m_lastStartTime;
+    //ar & m_maxBytes;
+    //ar & m_totBytes;
+    //ar & m_startStopEvent;
+    //ar & m_sendEvent;
+    //ar & m_sending;
+  }
 
 private:
   void Write32 (uint8_t *buffer, const uint32_t data);
@@ -83,5 +111,12 @@ private:
 };
 
 } // namespace ns3
+
+BOOST_CLASS_EXPORT_KEY(ns3::V4Ping);
+
+BOOST_CLASS_TYPE_INFO(
+    ns3::V4Ping,
+    boost::serialization::extended_type_info_typeid<ns3::V4Ping>
+);
 
 #endif /* V4PING_H */

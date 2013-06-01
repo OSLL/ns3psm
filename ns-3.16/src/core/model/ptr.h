@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include "assert.h"
 
+
 namespace ns3 {
 
 /**
@@ -71,6 +72,7 @@ private:
   friend U *PeekPointer (const Ptr<U> &p);
 
   inline void Acquire (void) const;
+
 public:
   /**
    * Create an empty smart pointer
@@ -112,6 +114,14 @@ public:
   // allow if (sp)
   // disable delete sp
   operator Tester * () const;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    std::cout << "serializ ptr1 " << std::endl;
+    ar & m_ptr;
+    std::cout << "serializ ptr2" << std::endl;
+  }
+
 };
 
 template <typename T>

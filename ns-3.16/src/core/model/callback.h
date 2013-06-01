@@ -29,6 +29,7 @@
 #include "attribute-helper.h"
 #include "simple-ref-count.h"
 #include <typeinfo>
+#include <boost/serialization/base_object.hpp>
 
 namespace ns3 {
 
@@ -78,6 +79,12 @@ class CallbackImplBase : public SimpleRefCount<CallbackImplBase>
 public:
   virtual ~CallbackImplBase () {}
   virtual bool IsEqual (Ptr<const CallbackImplBase> other) const = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<SimpleRefCount<CallbackImplBase> >(*this);
+  }
 };
 
 // declare the CallbackImpl class
@@ -89,6 +96,12 @@ class CallbackImpl<R,empty,empty,empty,empty,empty,empty,empty,empty,empty> : pu
 public:
   virtual ~CallbackImpl () {}
   virtual R operator() (void) = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImplBase>(*this);
+  }
 };
 // define CallbackImpl for 1 params
 template <typename R, typename T1>
@@ -96,6 +109,12 @@ class CallbackImpl<R,T1,empty,empty,empty,empty,empty,empty,empty,empty> : publi
 public:
   virtual ~CallbackImpl () {}
   virtual R operator() (T1) = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImplBase>(*this);
+  }
 };
 // define CallbackImpl for 2 params
 template <typename R, typename T1, typename T2>
@@ -103,6 +122,12 @@ class CallbackImpl<R,T1,T2,empty,empty,empty,empty,empty,empty,empty> : public C
 public:
   virtual ~CallbackImpl () {}
   virtual R operator() (T1, T2) = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImplBase>(*this);
+  }
 };
 // define CallbackImpl for 3 params
 template <typename R, typename T1, typename T2, typename T3>
@@ -110,6 +135,12 @@ class CallbackImpl<R,T1,T2,T3,empty,empty,empty,empty,empty,empty> : public Call
 public:
   virtual ~CallbackImpl () {}
   virtual R operator() (T1, T2, T3) = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImplBase>(*this);
+  }
 };
 // define CallbackImpl for 4 params
 template <typename R, typename T1, typename T2, typename T3, typename T4>
@@ -117,6 +148,12 @@ class CallbackImpl<R,T1,T2,T3,T4,empty,empty,empty,empty,empty> : public Callbac
 public:
   virtual ~CallbackImpl () {}
   virtual R operator() (T1, T2, T3, T4) = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImplBase>(*this);
+  }
 };
 // define CallbackImpl for 5 params
 template <typename R, typename T1, typename T2, typename T3, typename T4, typename T5>
@@ -124,6 +161,12 @@ class CallbackImpl<R,T1,T2,T3,T4,T5,empty,empty,empty,empty> : public CallbackIm
 public:
   virtual ~CallbackImpl () {}
   virtual R operator() (T1, T2, T3, T4, T5) = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImplBase>(*this);
+  }
 };
 // define CallbackImpl for 6 params
 template <typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6>
@@ -131,6 +174,12 @@ class CallbackImpl<R,T1,T2,T3,T4,T5,T6,empty,empty,empty> : public CallbackImplB
 public:
   virtual ~CallbackImpl () {}
   virtual R operator() (T1, T2, T3, T4, T5, T6) = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImplBase>(*this);
+  }
 };
 // define CallbackImpl for 7 params
 template <typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7>
@@ -138,6 +187,12 @@ class CallbackImpl<R,T1,T2,T3,T4,T5,T6,T7,empty,empty> : public CallbackImplBase
 public:
   virtual ~CallbackImpl () {}
   virtual R operator() (T1, T2, T3, T4, T5, T6, T7) = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImplBase>(*this);
+  }
 };
 // define CallbackImpl for 8 params
 template <typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
@@ -145,6 +200,12 @@ class CallbackImpl<R,T1,T2,T3,T4,T5,T6,T7,T8,empty> : public CallbackImplBase {
 public:
   virtual ~CallbackImpl () {}
   virtual R operator() (T1, T2, T3, T4, T5, T6, T7, T8) = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImplBase>(*this);
+  }
 };
 // define CallbackImpl for 9 params
 template <typename R, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9>
@@ -152,6 +213,12 @@ class CallbackImpl : public CallbackImplBase {
 public:
   virtual ~CallbackImpl () {}
   virtual R operator() (T1, T2, T3, T4, T5, T6, T7, T8, T9) = 0;
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImplBase>(*this);
+  }
 };
 
 
@@ -204,6 +271,13 @@ public:
         return false;
       }
     return true;
+  }
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImpl<R,T1,T2,T3,T4,T5,T6,T7,T8,T9> >(*this);
+    ar & m_functor;
   }
 private:
   T m_functor;
@@ -260,6 +334,15 @@ public:
       }
     return true;
   }
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImpl<R,T1,T2,T3,T4,T5,T6,T7,T8,T9> >(*this);
+    ar & m_objPtr;
+    ar & m_memPtr;
+  }
+
 private:
   OBJ_PTR const m_objPtr;
   MEM_PTR m_memPtr;
@@ -314,6 +397,15 @@ public:
       }
     return true;
   }
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<CallbackImpl<R,T1,T2,T3,T4,T5,T6,T7,T8,empty> >(*this);
+    ar & m_functor;
+    ar & m_a;
+  }
+
 private:
   T m_functor;
   typename TypeTraits<TX>::ReferencedType m_a;
@@ -324,6 +416,11 @@ class CallbackBase {
 public:
   CallbackBase () : m_impl () {}
   Ptr<CallbackImplBase> GetImpl (void) const { return m_impl; }
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & m_impl;
+  }
 protected:
   CallbackBase (Ptr<CallbackImplBase> impl) : m_impl (impl) {}
   Ptr<CallbackImplBase> m_impl;
@@ -444,6 +541,12 @@ public:
   void Assign (const CallbackBase &other) {
     DoAssign (other.GetImpl ());
   }
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & boost::serialization::base_object<CallbackBase>(*this);
+  }
+
 private:
   CallbackImpl<R,T1,T2,T3,T4,T5,T6,T7,T8,T9> *DoPeekImpl (void) const {
     return static_cast<CallbackImpl<R,T1,T2,T3,T4,T5,T6,T7,T8,T9> *> (PeekPointer (m_impl));
@@ -970,6 +1073,10 @@ public:
   virtual Ptr<AttributeValue> Copy (void) const;
   virtual std::string SerializeToString (Ptr<const AttributeChecker> checker) const;
   virtual bool DeserializeFromString (std::string value, Ptr<const AttributeChecker> checker);
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & m_value;
+  }
 private:
   CallbackBase m_value;
 };

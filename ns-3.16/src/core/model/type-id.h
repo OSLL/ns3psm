@@ -61,11 +61,21 @@ public:
     ns3::Ptr<const ns3::AttributeValue> initialValue;
     ns3::Ptr<const ns3::AttributeAccessor> accessor;
     ns3::Ptr<const ns3::AttributeChecker> checker;
+
+    template<class Archiver>
+    void serialize(Archiver& ar, const unsigned int) {
+      ar & name & help & flags & originalInitialValue & initialValue & accessor & checker;
+    }
   };
   struct TraceSourceInformation {
     std::string name;
     std::string help;
     ns3::Ptr<const ns3::TraceSourceAccessor> accessor;
+
+    template<class Archiver>
+    void serialize(Archiver& ar, const unsigned int) {
+      ar & name & help & accessor;
+    }
   };
 
   /**
@@ -315,6 +325,12 @@ public:
   inline TypeId (const TypeId &o);
   inline TypeId &operator = (const TypeId &o);
   inline ~TypeId ();
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & m_tid;
+  }
 
 private:
   friend class AttributeList;

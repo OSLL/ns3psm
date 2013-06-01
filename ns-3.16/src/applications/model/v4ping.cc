@@ -25,6 +25,8 @@
 #include "ns3/packet.h"
 #include "ns3/trace-source-accessor.h"
 
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::V4Ping);
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("V4Ping");
@@ -276,6 +278,5 @@ V4Ping::StopApplication (void)
       std::cout << os.str ();
     }
 }
-
 
 } // namespace ns3

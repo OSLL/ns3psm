@@ -50,6 +50,11 @@ public:
   virtual Ptr<AttributeValue> Copy (void) const;
   virtual std::string SerializeToString (Ptr<const AttributeChecker> checker) const;
   virtual bool DeserializeFromString (std::string value, Ptr<const AttributeChecker> checker);
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & m_value;
+  }
 private:
   bool m_value;
 };

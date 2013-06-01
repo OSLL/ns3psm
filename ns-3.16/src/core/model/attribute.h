@@ -205,6 +205,9 @@ class EmptyAttributeValue : public AttributeValue
 {
 public:
   EmptyAttributeValue ();
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+  }
 private:
   virtual Ptr<AttributeValue> Copy (void) const;
   virtual std::string SerializeToString (Ptr<const AttributeChecker> checker) const;

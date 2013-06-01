@@ -19,7 +19,6 @@ class LoadBalancingHelper {
 public:
   void Install ();
   void Start ();
-  void IncNodeLoad (uint32_t context);
 
 private:
   Ptr<LoadBalancingApplication> m_application;

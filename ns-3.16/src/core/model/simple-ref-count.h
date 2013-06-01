@@ -109,6 +109,13 @@ public:
   }
 
   static void Cleanup (void) {}
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & m_count;
+  }
+
 private:
   // Note we make this mutable so that the const methods can still
   // change it.

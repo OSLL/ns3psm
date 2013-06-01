@@ -24,6 +24,7 @@
 #include "object.h"
 #include "ptr.h"
 #include "attribute.h"
+#include <boost/serialization/map.hpp>
 
 namespace ns3 {
 
@@ -63,6 +64,11 @@ public:
   virtual Ptr<AttributeValue> Copy (void) const;
   virtual std::string SerializeToString (Ptr<const AttributeChecker> checker) const;
   virtual bool DeserializeFromString (std::string value, Ptr<const AttributeChecker> checker);
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    ar & m_objects;
+  }
 
 private:
   friend class ObjectPtrContainerAccessor;

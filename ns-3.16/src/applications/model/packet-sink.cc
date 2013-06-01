@@ -32,6 +32,11 @@
 #include "ns3/udp-socket-factory.h"
 #include "packet-sink.h"
 
+#include <boost/serialization/type_info_implementation.hpp>
+#include <boost/serialization/export.hpp>
+
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::PacketSink);
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("PacketSink");

@@ -29,6 +29,8 @@
 #include "ns3/trace-source-accessor.h"
 #include "udp-echo-client.h"
 
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::UdpEchoClient);
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("UdpEchoClientApplication");

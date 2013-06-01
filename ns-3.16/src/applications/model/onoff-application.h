@@ -32,6 +32,12 @@
 #include "ns3/data-rate.h"
 #include "ns3/traced-callback.h"
 
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/type_info_implementation.hpp>
+#include <boost/serialization/extended_type_info_no_rtti.hpp>
+
+
 namespace ns3 {
 
 class Address;
@@ -85,6 +91,9 @@ class Socket;
 */
 class OnOffApplication : public Application 
 {
+
+friend class boost::serialization::access;
+
 public:
   static TypeId GetTypeId (void);
 
@@ -116,9 +125,31 @@ public:
   */
   int64_t AssignStreams (int64_t stream);
 
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    std::cout << "serializ onoff " << std::endl;
+    ar & boost::serialization::base_object< Application >(*this);
+    //ar & m_peer;
+    //ar & m_connected;
+    //ar & m_onTime;
+    //ar & m_offTime;
+    //ar & m_cbrRate;
+    //ar & m_pktSize;
+    //ar & m_residualBits;
+    //ar & m_lastStartTime;
+    //ar & m_maxBytes;
+    //ar & m_totBytes;
+    //ar & m_startStopEvent;
+    //ar & m_sendEvent;
+    //ar & m_sending;
+  }
+
 protected:
+
   virtual void DoDispose (void);
+
 private:
+
   // inherited from Application base class.
   virtual void StartApplication (void);    // Called at time specified by Start
   virtual void StopApplication (void);     // Called at time specified by Stop
@@ -165,5 +196,12 @@ private:
 };
 
 } // namespace ns3
+
+BOOST_CLASS_EXPORT_KEY(ns3::OnOffApplication);
+//
+//BOOST_CLASS_TYPE_INFO(
+//    ns3::OnOffApplication,
+//    boost::serialization::extended_type_info_no_rtti<ns3::OnOffApplication>
+//)
 
 #endif /* ONOFF_APPLICATION_H */

@@ -254,12 +254,12 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
   NS_LOG_LOGIC ("handle " << next.key.m_ts);
   m_currentTs = next.key.m_ts;
   m_currentContext = next.key.m_context;
-  loadBalancingHelper.IncNodeLoad (m_currentContext);
   m_currentUid = next.key.m_uid;
 
   if ((m_currentContext > 0) && (m_currentContext < NodeContainer::GetGlobal ().GetN ()))
   {
 	  Ptr<Node> currentContextNode = NodeList::GetNode (m_currentContext);
+	  currentContextNode->IncLoad();
 	  uint32_t currentContextSysId = currentContextNode->GetSystemId ();
 	  if (currentContextSysId == MpiInterface::GetSystemId())
 	  {
@@ -269,6 +269,7 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
   } else {
     next.impl->Invoke ();
     next.impl->Unref ();
+    //currentContextNode->IncLoad();
   }
 
 }

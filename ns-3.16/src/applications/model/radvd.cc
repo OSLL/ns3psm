@@ -37,6 +37,8 @@
 
 #include "radvd.h"
 
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::Radvd);
+
 namespace ns3
 {
 

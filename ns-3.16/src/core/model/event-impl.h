@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include "simple-ref-count.h"
+#include <boost/serialization/base_object.hpp>
 
 namespace ns3 {
 
@@ -57,6 +58,13 @@ public:
    * Invoked by the simulation engine before calling Invoke.
    */
   bool IsCancelled (void);
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int)
+  {
+    ar & boost::serialization::base_object<SimpleRefCount<EventImpl> >(*this);
+    ar & m_cancel;
+  }
 
 protected:
   virtual void Notify (void) = 0;

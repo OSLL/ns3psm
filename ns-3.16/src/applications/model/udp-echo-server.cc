@@ -32,6 +32,8 @@
 
 #include "udp-echo-server.h"
 
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::UdpEchoServer);
+
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("UdpEchoServerApplication");

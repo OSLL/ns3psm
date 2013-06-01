@@ -51,6 +51,25 @@ public:
   Time GetTs (void) const;
 
   static TypeId GetTypeId (void);
+
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    //ar & boost::serialization::base_object<Application>(*this);
+    //ar & m_peer;
+    //ar & m_connected;
+    //ar & m_onTime;
+    //ar & m_offTime;
+    //ar & m_cbrRate;
+    //ar & m_pktSize;
+    //ar & m_residualBits;
+    //ar & m_lastStartTime;
+    //ar & m_maxBytes;
+    //ar & m_totBytes;
+    //ar & m_startStopEvent;
+    //ar & m_sendEvent;
+    //ar & m_sending;
+  }
+
 private:
   virtual TypeId GetInstanceTypeId (void) const;
   virtual void Print (std::ostream &os) const;
@@ -63,5 +82,6 @@ private:
 };
 
 } // namespace ns3
+
 
 #endif /* SEQ_TS_HEADER_H */
