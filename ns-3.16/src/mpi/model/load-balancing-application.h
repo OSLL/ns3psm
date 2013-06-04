@@ -136,7 +136,7 @@ private:
 
   int m_mpiProcessId;
   int m_mpiNumProcesses;
-  MPI_Comm comm;
+  MPI_Comm* m_mpiComm;
 
 private:
   void ScheduleReclusteringEvent ();
