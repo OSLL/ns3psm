@@ -219,7 +219,7 @@ LoadBalancingApplication::CreateNetworkGraph (void)
   std::cerr << "3 * " << m_mpiProcessId << std::endl;
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
-      if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() < m_networkGraph.vtxdist[m_mpiProcessId + 1]))
+      if (((int)(*it)->GetId() >= m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() < m_networkGraph.vtxdist[m_mpiProcessId + 1]))
         {
     	  parmetis_idx_t edge_index = 0;
     	  index = (*it)->GetId() - m_networkGraph.vtxdist[m_mpiProcessId];
@@ -244,13 +244,14 @@ LoadBalancingApplication::CreateNetworkGraph (void)
   {
 	  m_networkGraph.xadj[i] += m_networkGraph.xadj[i - 1];
   }
-
+  std::cerr << m_networkGraph.xadj[m_networkGraph.nvtxs] << " ! " << m_mpiProcessId << std::endl;
   m_networkGraph.adjncy = new parmetis_idx_t[m_networkGraph.xadj[m_networkGraph.nvtxs]];
   m_networkGraph.adjwgt = new parmetis_idx_t[m_networkGraph.xadj[m_networkGraph.nvtxs]];
+
   std::cerr << "5 * " << m_mpiProcessId << std::endl;
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
-      if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() < m_networkGraph.vtxdist[m_mpiProcessId + 1]))
+      if (((int)(*it)->GetId() >= m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() < m_networkGraph.vtxdist[m_mpiProcessId + 1]))
         {
     	  index = (*it)->GetId() - m_networkGraph.vtxdist[m_mpiProcessId];
     	  int current_edge = 0;
