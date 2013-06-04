@@ -51,12 +51,11 @@ LoadBalancingApplication::LoadBalancingApplication ()
     m_iterationNum (0)
 {
   NS_LOG_FUNCTION (this);
-  MPI_Comm comm;
-  m_mpiComm = &comm;
   MPI_Init(NULL, NULL);
+  m_mpiComm = &MPI_COMM_WORLD;
 
-  MPI_Comm_size(comm, &m_mpiProcessId);
-  MPI_Comm_rank(comm, &m_mpiNumProcesses);
+  MPI_Comm_size(MPI_COMM_WORLD, &m_mpiProcessId);
+  MPI_Comm_rank(MPI_COMM_WORLD, &m_mpiNumProcesses);
 }
 
 LoadBalancingApplication::~LoadBalancingApplication()
