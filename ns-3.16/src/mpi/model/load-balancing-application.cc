@@ -125,7 +125,7 @@ void LoadBalancingApplication::Reclustering ()
   UpdateNetworkGraph ();
   MPI_Status stat;
   MPI_Comm comm = MPI_COMM_WORLD;
-
+  std::cerr << "Reclustering *** " << m_mpiProcessId << std::endl;
     ParMETIS_V3_RefineKway(m_networkGraph.vtxdist, m_networkGraph.xadj, m_networkGraph.adjncy, m_networkGraph.vwgt,
   		  m_networkGraph.adjwgt, &m_networkGraph.wgtflag, &m_networkGraph.numflag, &m_networkGraph.ncon,
   		  &m_networkGraph.nparts, m_networkGraph.tpwgts, m_networkGraph.ubvec, m_networkGraph.options,
@@ -219,8 +219,9 @@ LoadBalancingApplication::CreateNetworkGraph (void)
 
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
-      if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId + 1]))
+      if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() < m_networkGraph.vtxdist[m_mpiProcessId + 1]))
         {
+    	  parmetis_idx_t edge_index = 0;
     	  index = (*it)->GetId() - m_networkGraph.vtxdist[m_mpiProcessId];
     	  m_networkGraph.part[index] = (*it)->GetSystemId();
           for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
@@ -230,10 +231,12 @@ LoadBalancingApplication::CreateNetworkGraph (void)
               Ptr<Channel> channel = localNetDevice->GetChannel ();
               if (channel == 0) continue;
               m_networkGraph.gnedges++;
+              edge_index++;
             }
-          m_networkGraph.xadj[index + 1] = m_networkGraph.gnedges;
+          m_networkGraph.xadj[index + 1] = edge_index;
         }
       m_networkGraph.part_all[(*it)->GetId()] = (*it)->GetSystemId();
+      m_networkGraph.part[index] = (*it)->GetSystemId();
     }
 
   m_networkGraph.xadj[0] = 0;
@@ -247,7 +250,7 @@ LoadBalancingApplication::CreateNetworkGraph (void)
 
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
-      if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId + 1]))
+      if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() < m_networkGraph.vtxdist[m_mpiProcessId + 1]))
         {
     	  index = (*it)->GetId() - m_networkGraph.vtxdist[m_mpiProcessId];
     	  int current_edge = 0;
