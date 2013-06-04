@@ -15,8 +15,13 @@
 #include "mpi-interface.h"
 #include <boost/graph/graphviz.hpp>
 #include <boost/graph/adj_list_serialize.hpp>
+
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/classification.hpp>
+
 #include <utility>
 #include <sstream>
+#include <mpi.h>
 
 
 #include "lso_cluster_func.hpp"
@@ -24,18 +29,6 @@
 NS_LOG_COMPONENT_DEFINE ("LoadBalancingApplication");
 
 namespace ns3 {
-
-int get(global_value_owner_map_graph, global_value_graph k) {
-  return k.processor;
-}
-
-int get(global_value_owner_map_node, global_value_node k) {
-  return k.processor;
-}
-
-int get(global_value_owner_map_applications, global_value_applications k) {
-  return k.processor;
-}
 
 NS_OBJECT_ENSURE_REGISTERED (LoadBalancingApplication);
 
@@ -55,31 +48,17 @@ LoadBalancingApplication::GetTypeId (void)
 
 LoadBalancingApplication::LoadBalancingApplication ()
   : m_reclusteringInterval (Seconds (20)),
-    m_clusterLoad (0),
     m_iterationNum (0)
 {
   NS_LOG_FUNCTION (this);
 
-  char** argv; int argc = 0;
-  boost::mpi::environment env(argc, argv);
-  boost::mpi::communicator world;
-
-  process_group pg(world);
-  m_mpiProcessId = process_id(pg);
-  m_mpiNumProcesses = num_processes(pg);
-  m_mpiProcessGroup = pg;
-
-  m_mpiGraphQueue = new dist_queue_graph_t(pg, global_value_owner_map_graph());
-  m_mpiNodeQueue = new dist_queue_node_t(pg, global_value_owner_map_node());
-  m_mpiApplicationsQueue =  new dist_queue_applications_t(pg, global_value_owner_map_applications());
+  MPI_Comm_size(comm, &m_mpiProcessId);
+  MPI_Comm_rank(comm, &m_mpiNumProcesses);
 }
 
 LoadBalancingApplication::~LoadBalancingApplication()
 {
   NS_LOG_FUNCTION (this);
-  delete m_mpiGraphQueue;
-  delete m_mpiNodeQueue;
-  delete m_mpiApplicationsQueue;
 }
 
 void
@@ -120,12 +99,6 @@ void LoadBalancingApplication::StopApplication () // Called at time specified by
 void LoadBalancingApplication::CancelEvents ()
 {
   NS_LOG_FUNCTION (this);
-
-  /*if (m_reclusteringEvent.IsRunning ())
-    {
-	  // TODO do smth
-    }
-  Simulator::Cancel (m_reclusteringEvent);*/
 }
 
 void LoadBalancingApplication::ScheduleReclusteringEvent ()
@@ -138,53 +111,88 @@ void LoadBalancingApplication::ScheduleReclusteringEvent ()
 void LoadBalancingApplication::StartReclustering ()
 {
   NS_LOG_FUNCTION (this);
-
+  std::cerr << "Reclustering iteration " << m_iterationNum ++ << " on cluster node "<< m_mpiProcessId << std::endl;
   Reclustering ();
+  ScheduleReclusteringEvent ();
 }
 
-void LoadBalancingApplication::StartCreateNetworkGraph ()
-{
-  NS_LOG_FUNCTION (this);
-
-  CreateNetworkGraph ();
-}
-
-void LoadBalancingApplication::StartMergeNetwork ()
-{
-  NS_LOG_FUNCTION (this);
-
-  MergeNetworkGraph ();
-}
-
-void LoadBalancingApplication::StartUpdateNetworkGraph ()
-{
-  NS_LOG_FUNCTION (this);
-
-  UpdateNetworkGraph ();
-}
-
-void LoadBalancingApplication::StartWriteNetworkGraph ()
-{
-  NS_LOG_FUNCTION (this);
-
-  WriteNetworkGraph (std::string (""));
-}
 
 // Logical functions
 void LoadBalancingApplication::Reclustering ()
 {
-  NS_LOG_FUNCTION (this);
 
-  std::cerr << "Reclustering iteration " << m_iterationNum ++ << " on cluster node "<< m_mpiProcessId << std::endl;
-  MergeNetworkGraph ();
-  ScheduleReclusteringEvent ();
+  NS_LOG_FUNCTION (this);
+  UpdateNetworkGraph ();
+  MPI_Status stat;
+
+    ParMETIS_V3_RefineKway(m_networkGraph.vtxdist, m_networkGraph.xadj, m_networkGraph.adjncy, m_networkGraph.vwgt,
+  		  m_networkGraph.adjwgt, &m_networkGraph.wgtflag, &m_networkGraph.numflag, &m_networkGraph.ncon,
+  		  &m_networkGraph.nparts, m_networkGraph.tpwgts, m_networkGraph.ubvec, m_networkGraph.options,
+            &m_networkGraph.edgecut, m_networkGraph.part, &comm);
+
+    for (int i =0; i < m_mpiNumProcesses; i++){
+      if (i != m_mpiProcessId) {
+        MPI_Send((void *)m_networkGraph.part, m_networkGraph.nvtxs, MPI_INT, i, 0, comm);
+      }
+    }
+
+
+    for (int i = 0; i < m_mpiNumProcesses; i++){
+      if (i != m_mpiProcessId) {
+        MPI_Recv((void *)&m_networkGraph.part_all[m_networkGraph.vtxdist[i]],
+      		  m_networkGraph.vtxdist[i + 1] - m_networkGraph.vtxdist[i], MPI_INT, i, 0, comm, &stat);
+      }
+    }
+
+    for (int i = 0; i < m_networkGraph.gnvtxs; ++i) {
+  	  if (((int)NodeList::GetNode (i)->GetSystemId() == m_mpiProcessId) && (m_networkGraph.part_all[i] != m_mpiProcessId)) {
+  		Ptr<Node> nodeForMoving = NodeList::GetNode (i);
+  		//nodeForMoving-> SetSystemId (m_networkGraph.part_all[i]);
+  		std::string applications;
+  		std::vector<Ptr<Application> > nodeApplications = nodeForMoving->GetApplications ();
+
+  		for (uint32_t j = 0; j < nodeApplications.size (); ++j)
+  		{
+  			nodeApplications[j]-> SetStopTime(Simulator::Now());
+  			applications.append(" ");
+  			applications.append(nodeApplications[j]->GetInstanceTypeId ().GetName ());
+  		}
+  		size_t app_size = applications.size();
+  		MPI_Send((void *)(&app_size), 1, MPI_UNSIGNED, m_networkGraph.part_all[i], 0, comm);
+  		MPI_Send((void *)applications.c_str(), applications.size(), MPI_CHAR, m_networkGraph.part_all[i], 0, comm);
+
+  	  }
+    }
+
+    for (int i = 0; i < m_networkGraph.gnvtxs; ++i) {
+  	  if ((m_networkGraph.part_all[i] == m_mpiProcessId) && ((int)NodeList::GetNode (i)->GetSystemId() != m_mpiProcessId)) {
+  		Ptr<Node> nodeForMoving = NodeList::GetNode (i);
+  		size_t applicationsNum;
+  		MPI_Recv((void *)&applicationsNum, 1, MPI_UNSIGNED, (int)NodeList::GetNode (i)->GetSystemId(), 0, comm, &stat);
+  		char* applications = new char[applicationsNum];
+  		MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), 0, comm, &stat);
+
+  		std::string applicationsString(applications);
+  		std::vector <std::string> nodeApplications;
+  		boost::algorithm::split(nodeApplications, applicationsString, boost::algorithm::is_any_of(" "));
+  		nodeForMoving-> SetSystemId (m_networkGraph.part_all[i]);
+
+  		for (uint32_t j = 0; j < nodeApplications.size (); ++j)
+  		{
+  	        ObjectFactory objectFactory;
+  	        objectFactory.SetTypeId (TypeId::LookupByName (nodeApplications[j]) );
+  	        Ptr<Application> application = objectFactory.Create<Application> ();
+  	        application-> SetStartTime (Simulator::Now());
+  	        application-> Start ();
+  	        nodeForMoving->AddApplication (application);
+  		}
+  	  }
+    }
 }
 
 void
 LoadBalancingApplication::CreateNetworkGraph (void)
 {
-
-  MPI_Comm comm;
 
   NodeContainer node_container =  NodeContainer::GetGlobal ();
   m_networkGraph.gnvtxs = node_container.GetN ();
@@ -197,18 +205,21 @@ LoadBalancingApplication::CreateNetworkGraph (void)
     k -= l;
   }
 
-  parmetis_idx_t nvtxs = m_networkGraph.vtxdist[m_mpiProcessId + 1] - m_networkGraph.vtxdist[m_mpiProcessId];
-  m_networkGraph.xadj = new parmetis_idx_t [nvtxs + 1];
-  m_networkGraph.vwgt = new parmetis_idx_t [nvtxs];
+  m_networkGraph.nvtxs = m_networkGraph.vtxdist[m_mpiProcessId + 1] - m_networkGraph.vtxdist[m_mpiProcessId];
+  m_networkGraph.xadj = new parmetis_idx_t [m_networkGraph.nvtxs + 1];
+  m_networkGraph.vwgt = new parmetis_idx_t [m_networkGraph.nvtxs];
+  m_networkGraph.part = new parmetis_idx_t[m_networkGraph.nvtxs];
+  m_networkGraph.part_all = new parmetis_idx_t[m_networkGraph.gnvtxs];
 
   m_networkGraph.gnedges = 0;
+  parmetis_idx_t index = 0;
 
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
       if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId + 1]))
         {
-    	  m_networkGraph.vwgt[(*it)->GetId()] = (*it)->GetLoad();
-
+    	  index = (*it)->GetId() - m_networkGraph.vtxdist[m_mpiProcessId];
+    	  m_networkGraph.part[index] = (*it)->GetSystemId();
           for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
             {
               Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
@@ -217,20 +228,26 @@ LoadBalancingApplication::CreateNetworkGraph (void)
               if (channel == 0) continue;
               m_networkGraph.gnedges++;
             }
-          m_networkGraph.xadj[(*it)->GetId()] = m_networkGraph.gnedges;
+          m_networkGraph.xadj[index + 1] = m_networkGraph.gnedges;
         }
+      m_networkGraph.part_all[(*it)->GetId()] = (*it)->GetSystemId();
     }
 
-  m_networkGraph.adjncy = new parmetis_idx_t[m_networkGraph.xadj[nvtxs]];
-  m_networkGraph.adjwgt = new parmetis_idx_t[m_networkGraph.xadj[nvtxs]];
+  m_networkGraph.xadj[0] = 0;
+  for (int i = 1; i < m_networkGraph.nvtxs + 1; i++)
+  {
+	  m_networkGraph.xadj[i] += m_networkGraph.xadj[i - 1];
+  }
 
-  int current_edge = 0;
+  m_networkGraph.adjncy = new parmetis_idx_t[m_networkGraph.xadj[m_networkGraph.nvtxs]];
+  m_networkGraph.adjwgt = new parmetis_idx_t[m_networkGraph.xadj[m_networkGraph.nvtxs]];
+
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
       if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId + 1]))
         {
-    	  m_networkGraph.vwgt[(*it)->GetId()] = (*it)->GetLoad();
-
+    	  index = (*it)->GetId() - m_networkGraph.vtxdist[m_mpiProcessId];
+    	  int current_edge = 0;
           for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
             {
               Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
@@ -238,13 +255,16 @@ LoadBalancingApplication::CreateNetworkGraph (void)
               Ptr<Channel> channel = localNetDevice->GetChannel ();
               if (channel == 0) continue;
               int id = (channel->GetDevice (1) == localNetDevice) ? 0 : 1;
-              m_networkGraph.adjncy[current_edge] = (channel->GetDevice (id))->GetNode ()->GetId ();
-              m_networkGraph.adjwgt[current_edge++] = channel->GetTraffic();
+              TimeValue delay;
+              channel->GetAttribute ("Delay", delay);
+              m_networkGraph.adjncy[ m_networkGraph.xadj[index] + current_edge] = (channel->GetDevice (id))->GetNode ()->GetId ();
+              m_networkGraph.adjwgt[ m_networkGraph.xadj[index] + current_edge] = delay.Get().GetMilliSeconds();
+              current_edge++;
             }
         }
     }
 
-  m_networkGraph. nparts = m_mpiNumProcesses;
+  m_networkGraph.nparts = m_mpiNumProcesses;
   m_networkGraph.tpwgts = new parmetis_real_t[m_networkGraph.nparts];
   parmetis_real_t tpw = 1.0/(parmetis_real_t)m_networkGraph.nparts;
 
@@ -252,329 +272,38 @@ LoadBalancingApplication::CreateNetworkGraph (void)
 	  m_networkGraph.tpwgts[i] =tpw;
   }
 
-  m_networkGraph.part = new parmetis_idx_t[m_networkGraph.gnvtxs];
-
-  ParMETIS_V3_PartKway(m_networkGraph.vtxdist, m_networkGraph.xadj, m_networkGraph.adjncy, m_networkGraph.vwgt,
-		  m_networkGraph.adjwgt, &m_networkGraph.wgtflag, &m_networkGraph.numflag,
-		  &m_networkGraph.ncon, &m_networkGraph.nparts, m_networkGraph.tpwgts, m_networkGraph.ubvec,
-		  m_networkGraph.options, &m_networkGraph.edgecut, m_networkGraph.part, &comm);
 }
 
 void
 LoadBalancingApplication::UpdateNetworkGraph ()
 {
+
+  MPI_Status stat;
+  parmetis_idx_t *loads = new parmetis_idx_t[m_networkGraph.gnvtxs];
+  parmetis_idx_t *tmp = new parmetis_idx_t[m_networkGraph.gnvtxs];
+
   NodeContainer node_container =  NodeContainer::GetGlobal();
 
-  int current_edge = 0;
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
-      if (((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() > m_networkGraph.vtxdist[m_mpiProcessId + 1]))
-        {
-           m_networkGraph.vwgt[(*it)->GetId()] = (*it)->GetLoad();
-          for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
-            {
-              Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
-              if (!localNetDevice->IsPointToPoint ()) continue;
-              Ptr<Channel> channel = localNetDevice->GetChannel ();
-              if (channel == 0) continue;
-              m_networkGraph.adjwgt[current_edge++] = channel->GetTraffic();
-            }
-        }
+       loads[(*it)->GetId()] = (*it)->GetLoad();
+      (*it)->RemoveLoad();
     }
-}
 
-void
-LoadBalancingApplication::WriteNetworkGraph (const std::string& filename)
-{/*
-  std::ofstream graphStream((filename +
-                             std::string("_").c_str() +
-                             boost::lexical_cast<std::string>(MpiInterface::GetSystemId()) +
-                             std::string("_").c_str() +
-                             boost::lexical_cast<std::string>(m_iterationNum) +
-                             std::string(".dot")).c_str());
-
-  boost::dynamic_properties dp;
-
-  boost::property_map<graph_t2, boost::vertex_index_t>::type name =
-  boost::get(boost::vertex_index, m_networkGraph);
-  dp.property("node_id", name);
-
-  boost::property_map<graph_t2, boost::vertex_color_t>::type color =
-  boost::get(boost::vertex_color, m_networkGraph);
-  dp.property("label", color);
-
-  boost::property_map<graph_t2, boost::edge_weight_t>::type weight =
-  boost::get(boost::edge_weight, m_networkGraph);
-  dp.property("label", weight);
-
-  boost::write_graphviz_dp(graphStream, m_networkGraph, dp);*/
-}
-
-void
-LoadBalancingApplication::MergeNetworkGraph ()
-{
- /* UpdateNetworkGraph ();
-
-  if (m_mpiProcessId != 0)
-  {
-      global_value_graph v_graph(0, m_networkGraph);
-      m_mpiGraphQueue->push(v_graph);
+  for (int i =0; i < m_mpiNumProcesses; i++){
+    if (i != m_mpiProcessId) {
+      MPI_Send((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 0, comm);
+    }
   }
 
-  double max_traffic = 0;
-
-  while (!m_mpiGraphQueue->empty())
-  {
-    global_value_graph v_graph = m_mpiGraphQueue->top(); m_mpiGraphQueue->pop();
-    graph_t tmp = v_graph.value;
-
-    // Merging nodes load
-    graph_vertex_iterator sti, eni;
-    boost::tie(sti, eni) = boost::vertices(tmp);
-    std::vector<vertex_descriptor> vertex_list(sti, eni);
-
-    for (uint32_t i = 0; i < vertex_list.size(); ++i)
-    {
-      boost::put (boost::vertex_color,
-                  m_networkGraph,
-                  boost::vertex (boost::get (boost::vertex_index, tmp, vertex_list[i]), m_networkGraph),
-                  boost::get (boost::vertex_color,
-                             m_networkGraph,
-                             boost::vertex (boost::get(boost::vertex_index, tmp, vertex_list[i]), m_networkGraph)) +
-                  boost::get (boost::vertex_color,
-                             tmp,
-                             vertex_list[i]));
-    }
-
-    // Merging channels traffic
-    graph_edge_iterator st, en;
-    boost::tie(st, en) = boost::edges(tmp);
-    std::vector<edge_descriptor> edge_list(st, en);
-
-    for (uint32_t i = 0; i < edge_list.size(); ++i)
-    {
-      double sum_traffic = (double) (boost::get (boost::edge_weight,
-                                                 m_networkGraph,
-                                                 boost::edge (boost::vertex (boost::get (boost::vertex_index,
-                                                                                         tmp,
-                                                                                         boost::source(edge_list[i], tmp)),
-                                                                             m_networkGraph),
-                                                              boost::vertex (boost::get (boost::vertex_index,
-                                                                                         tmp,
-                                                                                         boost::target(edge_list[i], tmp)),
-                                                                             m_networkGraph),
-                                                              m_networkGraph).first) +
-                                                 boost::get (boost::edge_weight, tmp, edge_list[i]));
-      if (sum_traffic > max_traffic)
-      {
-         max_traffic = sum_traffic;
-      }
-
-      boost::put (boost::edge_weight,
-                  m_networkGraph,
-                  boost::edge (boost::vertex (boost::get(boost::vertex_index,
-                                                         tmp,
-                                                         boost::source(edge_list[i], tmp)),
-                                              m_networkGraph),
-                               boost::vertex (boost::get(boost::vertex_index,
-                                                         tmp,
-                                                         boost::target(edge_list[i], tmp)),
-                                              m_networkGraph),
-                               m_networkGraph).first,
-                               sum_traffic
-                  );
-    }
-
-  }
-  synchronize(m_mpiProcessGroup);
-
-  // Reclustering
-  if (m_mpiProcessId == 0)
-  {
-    graph_edge_iterator st, en;
-    boost::tie(st, en) = boost::edges(m_networkGraph);
-    std::vector<edge_descriptor> edge_list(st, en);
-
-    for (uint32_t i = 0; i < edge_list.size(); ++i)
-    {
-    boost::put (boost::edge_weight,
-                m_networkGraph,
-                edge_list[i],
-                (max_traffic - boost::get (boost::edge_weight, m_networkGraph, edge_list[i])) / max_traffic
-               );
-    }
-    WriteNetworkGraph (std::string ("graph"));
-    ClusterNetworkGraph ();
-  }
-
-  synchronize(m_mpiProcessGroup);
-
-  //
-  while (!m_mpiNodeQueue->empty())
-    {
-      global_value_node v_node = m_mpiNodeQueue->top(); m_mpiNodeQueue->pop();
-      node_for_moving_t node_for_moving = v_node.value;
-
-      Ptr<Node> nodeForMoving = NodeList::GetNode (node_for_moving.context);
-      nodeForMoving-> SetSystemId (node_for_moving.new_cluster);
-
-      apllications_for_moving_t applications;
-      applications.context = node_for_moving.context;
-      applications.appliations = nodeForMoving->GetApplications ();
-      global_value_applications v_applications(node_for_moving.new_cluster, applications);
-      m_mpiApplicationsQueue->push (v_applications);
-    }
-
-  synchronize(m_mpiProcessGroup);
-
-  while (!m_mpiApplicationsQueue->empty())
-    {
-      global_value_applications v_applications = m_mpiApplicationsQueue->top(); m_mpiApplicationsQueue->pop();
-      apllications_for_moving_t apllications_for_moving = v_applications.value;
-
-      Ptr<Node> nodeForMoving = NodeList::GetNode (apllications_for_moving.context);
-
-      std::vector< Ptr<Application> > applications = apllications_for_moving.appliations;
-
-      for (uint32_t i = 0; i < applications.size(); ++i)
-      {
-        applications[i]-> SetStartTime (Simulator::Now());
-        applications[i]-> Start ();
-        nodeForMoving->AddApplication (applications[i]);
+  for (int i = 0; i < m_mpiNumProcesses; i++){
+    if (i != m_mpiProcessId) {
+      MPI_Recv((void *)tmp, m_networkGraph.gnvtxs, MPI_INT, i, 0, comm, &stat);
+      for (int j = 0; j < m_networkGraph.nvtxs; j++) {
+         m_networkGraph.vwgt[j] = tmp[m_networkGraph.vtxdist[m_mpiProcessId] + j] + (i == 0 ? 0 : m_networkGraph.vwgt[j]);
       }
     }
-  synchronize(m_mpiProcessGroup);*/
-}
-
-void
-LoadBalancingApplication::ClusterNetworkGraph ()
-{
-
-	//idxtype *vtxdist, *xadj, *adjncy, *vwgt, *vsize, *adjwgt, *part;
- /* {
-    std::ofstream clusterGraphStream (std::string ("example.txt").c_str ());
-
-    graph_edge_iterator st, en;
-    boost::tie (st, en) = boost::edges (m_networkGraph);
-    std::vector<edge_descriptor> edgeList (st, en);
-
-    for (uint32_t i = 0; i < edgeList.size (); ++i)
-    {
-      clusterGraphStream << boost::get(boost::vertex_index, m_networkGraph, boost::source(edgeList[i], m_networkGraph));
-      clusterGraphStream << " ";
-      clusterGraphStream << boost::get(boost::vertex_index, m_networkGraph, boost::target(edgeList[i], m_networkGraph));
-      clusterGraphStream << " ";
-      clusterGraphStream << boost::get(boost::edge_weight, m_networkGraph, edgeList[i]);
-      clusterGraphStream << "\n";
-    }
   }
-
-  std::string num_clusters_string = boost::lexical_cast<std::string> (m_mpiNumProcesses);
-  char const *num_clusters_char = num_clusters_string.c_str ();
-
-  const char* argv[] = {"example.txt", "--loss",
-                       //"rcut","infomap",
-		  	  	  	  "ncut",// "modularity",
-                       "--num_clusters", num_clusters_char, NULL};
-
-  int argc = sizeof (argv) / sizeof (char*) - 1;
-
-
-  try
-  {
-    // parse arguments, and run the clustering algorithm
-    ParamSourceCommandline param_source (argc, argv);
-    LsoMainFunctionCommandLine runner;
-    runner.add_all_parameters (param_source);
-    runner.run ();
-
-    std::vector< node_for_moving_t > nodes_for_moving;
-
-    for (size_t i = 0 ; i < runner.clustering.size () ; ++i)
-    {
-      uint32_t old_cluster = NodeList::GetNode (i)-> GetSystemId ();
-      uint32_t new_cluster = runner.clustering[i];
-      //if (old_cluster != new_cluster)
-      //{
-         node_for_moving_t node_for_moving;
-         node_for_moving.context = i;
-         node_for_moving.old_cluster = old_cluster;
-         node_for_moving.new_cluster = new_cluster;
-
-         nodes_for_moving.push_back(node_for_moving);
-
-         boost::put (boost::vertex_distance,
-                     m_networkGraph,
-                     boost::vertex (i, m_networkGraph),
-                     new_cluster);
-      //}
-    }
-
-    for (uint32_t i = 0; i < nodes_for_moving.size(); ++i)
-    {
-      node_for_moving_t node_for_moving = nodes_for_moving[i];
-      global_value_node v(node_for_moving.old_cluster, node_for_moving);
-
-      m_mpiNodeQueue->push(v);
-    }
-
-  } catch (std::exception const& e)
-  {
-	  std::cerr << e.what() << std::endl;
-    return;
-  } catch (...)
-  {
-	  std::cerr << "Unexpected error" << std::endl;
-    return;
-  }
-
-  WriteClusterGraph (std::string("cluster"));
-
-
-  // get border network nodes
-
-  // border nodes
-  //first - node id
-  //second first - own cluster
-  //second second - list of neighboring clusters
-  std::vector<std::pair <uint32_t, std::pair <uint32_t, vector <uint32_t> > > > border_nodes;
-
-  graph_vertex_iterator sti, eni;
-  boost::tie(sti, eni) = boost::vertices(m_networkGraph);
-  std::vector<vertex_descriptor> vertex_list(sti, eni);
-
-  for (uint32_t i = 0; i < vertex_list.size(); ++i)
-  {
-
-      // get all vertices adjacent to vertex back
-      graph_adjacency_iterator st, en;
-      boost::tie(st, en) = adjacent_vertices(vertex_list[i], m_networkGraph);
-
-      // copy to vector
-      std::vector<vertex_descriptor> adjacent_vertex(st, en);
-      vector <uint32_t> neighbors;
-
-      for (uint32_t j = 0; j < adjacent_vertex.size(); ++j) {
-        if (boost::get (boost::vertex_distance, m_networkGraph, vertex_list[i]) !=
-            boost::get (boost::vertex_distance, m_networkGraph, adjacent_vertex[j]))
-        {
-           neighbors.push_back(boost::get(boost::vertex_index, m_networkGraph, adjacent_vertex[j]));
-           std::cout << "border node " << i << std::endl;
-        }
-      }
-
-      if (neighbors.size() > 0)
-      {
-          std::pair <uint32_t, vector <uint32_t> >
-                                     border_node_neighbors (
-                                                boost::get (boost::vertex_distance, m_networkGraph, vertex_list[i]),
-                                                neighbors);
-
-          std::pair <uint32_t,  std::pair <uint32_t, vector <uint32_t> > > border_node (i, border_node_neighbors);
-          border_nodes.push_back(border_node);
-      }
-  }*/
-
 
 }
 

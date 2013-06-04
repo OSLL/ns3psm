@@ -113,6 +113,12 @@ Node::IncLoad (void)
 	m_load++;
 }
 
+void
+Node::RemoveLoad (void)
+{
+	m_load = 0;
+}
+
 
 uint32_t
 Node::GetSystemId (void) const

@@ -74,7 +74,9 @@ public:
   uint32_t GetId (void) const;
 
   uint32_t GetLoad (void) const;
+
   void IncLoad (void);
+  void RemoveLoad (void);
 
   /**
    * \returns the system id for parallel simulations associated
