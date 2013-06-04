@@ -51,7 +51,6 @@ LoadBalancingApplication::LoadBalancingApplication ()
     m_iterationNum (0)
 {
   NS_LOG_FUNCTION (this);
-  MPI_Init(NULL, NULL);
 
   MPI_Comm_size(MPI_COMM_WORLD, &m_mpiProcessId);
   MPI_Comm_rank(MPI_COMM_WORLD, &m_mpiNumProcesses);
@@ -131,6 +130,8 @@ void LoadBalancingApplication::Reclustering ()
   		  m_networkGraph.adjwgt, &m_networkGraph.wgtflag, &m_networkGraph.numflag, &m_networkGraph.ncon,
   		  &m_networkGraph.nparts, m_networkGraph.tpwgts, m_networkGraph.ubvec, m_networkGraph.options,
             &m_networkGraph.edgecut, m_networkGraph.part, &comm);
+    std::cerr << "Reclustering !!!! " << m_mpiProcessId << std::endl;
+
 
     for (int i =0; i < m_mpiNumProcesses; i++){
       if (i != m_mpiProcessId) {
