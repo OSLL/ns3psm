@@ -310,24 +310,51 @@ LoadBalancingApplication::UpdateNetworkGraph ()
 void
 LoadBalancingApplication::WriteClusterGraph (const std::string& filename)
 {
-/*  std::ofstream graphStream((filename +
-                             std::string("_").c_str() +
-                             boost::lexical_cast<std::string>(MpiInterface::GetSystemId()) +
-                             std::string("_").c_str() +
-                             boost::lexical_cast<std::string>(m_iterationNum) +
-                             std::string(".dot")).c_str());
+	graph_t2 g;
+	std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
+	NodeContainer node_container =  NodeContainer::GetGlobal();
+	  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+	    {
+	      m_networkGraphVertexMap[(*it)->GetId()] = boost::add_vertex(g);
+	      boost::put(boost::vertex_name, g, m_networkGraphVertexMap[(*it)->GetId()], (*it)->GetId());
+	      boost::put(boost::vertex_color, g, m_networkGraphVertexMap[(*it)->GetId()], m_networkGraph.part_all[(*it)->GetId()]);
+	    }
+
+	  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+	    {
+	      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+	        {
+	          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
+	          // only works for p2p links currently
+	          if (!localNetDevice->IsPointToPoint ()) continue;
+	          Ptr<Channel> channel = localNetDevice->GetChannel ();
+	          if (channel == 0) continue;
+
+	          // grab the adjacent node
+	          Ptr<Node> remoteNode;
+	          if (channel->GetDevice (1) == localNetDevice)
+	            {
+	               remoteNode = (channel->GetDevice (0))->GetNode ();
+	               boost::add_edge (m_networkGraphVertexMap[(*it)->GetId ()],
+	                                m_networkGraphVertexMap[remoteNode->GetId ()],
+	                                g);
+	             }
+	        }
+	    }
+  std::ofstream graphStream((filename + std::string(".dot")).c_str());
 
   boost::dynamic_properties dp;
 
-  boost::property_map<graph_t2, boost::vertex_name_t>::type name =
-  boost::get(boost::vertex_name, m_networkGraph);
+  boost::property_map<graph_t2, boost::vertex_index_t>::type name =
+  boost::get(boost::vertex_index, g);
   dp.property("node_id", name);
 
-  boost::property_map<graph_t2, boost::vertex_distance_t>::type distance =
-  boost::get(boost::vertex_distance, m_networkGraph);
-  dp.property("label", distance);
+  boost::property_map<graph_t2, boost::vertex_color_t>::type color =
+  boost::get(boost::vertex_color, g);
+  dp.property("label", color);
 
-  boost::write_graphviz_dp(graphStream, m_networkGraph, dp);*/
+
+  boost::write_graphviz_dp(graphStream, g, dp);
 
 }
 

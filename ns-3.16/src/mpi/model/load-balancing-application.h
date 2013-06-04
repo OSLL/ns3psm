@@ -26,12 +26,7 @@
 
 namespace ns3 {
 
-// vertex_name - for reading from dot
-// vertex_color - load
-// vertex_distance - # cluster node
 typedef boost::property < boost::vertex_name_t, uint32_t, boost::property < boost::vertex_color_t, uint32_t, boost::property < boost::vertex_distance_t, uint32_t > > > vertex_p;
-// edge_weight - traffic
-// edge_weight2 - delay
 typedef boost::property < boost::edge_weight_t, uint32_t, boost::property < boost::edge_weight2_t, int64_t > > edge_p;
 
 typedef boost::adjacency_list <
