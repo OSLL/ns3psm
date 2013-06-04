@@ -52,8 +52,8 @@ LoadBalancingApplication::LoadBalancingApplication ()
 {
   NS_LOG_FUNCTION (this);
 
-  MPI_Comm_size(MPI_COMM_WORLD, &m_mpiProcessId);
-  MPI_Comm_rank(MPI_COMM_WORLD, &m_mpiNumProcesses);
+  MPI_Comm_size(MPI_COMM_WORLD, &m_mpiNumProcesses);
+  MPI_Comm_rank(MPI_COMM_WORLD, &m_mpiProcessId);
 }
 
 LoadBalancingApplication::~LoadBalancingApplication()
@@ -213,7 +213,6 @@ LoadBalancingApplication::CreateNetworkGraph (void)
   m_networkGraph.vwgt = new parmetis_idx_t [m_networkGraph.nvtxs];
   m_networkGraph.part = new parmetis_idx_t[m_networkGraph.nvtxs];
   m_networkGraph.part_all = new parmetis_idx_t[m_networkGraph.gnvtxs];
-
   m_networkGraph.gnedges = 0;
   parmetis_idx_t index = 0;
 
