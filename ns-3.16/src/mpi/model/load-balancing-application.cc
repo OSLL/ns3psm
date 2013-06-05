@@ -286,8 +286,9 @@ LoadBalancingApplication::UpdateNetworkGraph ()
 {
 
   MPI_Status stat;
-  parmetis_idx_t *loads = new parmetis_idx_t[m_networkGraph.gnvtxs];
-  parmetis_idx_t *tmp = new parmetis_idx_t[m_networkGraph.gnvtxs];
+
+  parmetis_idx_t *loads = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.gnvtxs);
+  parmetis_idx_t *tmp = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.gnvtxs);
 
   NodeContainer node_container =  NodeContainer::GetGlobal();
 
@@ -296,6 +297,8 @@ LoadBalancingApplication::UpdateNetworkGraph ()
        loads[(*it)->GetId()] = (*it)->GetLoad();
       (*it)->RemoveLoad();
     }
+
+
   std::cerr << "8 * " << m_mpiProcessId << std::endl;
   for (int i = 0; i < m_mpiNumProcesses; i++){
     if (i != m_mpiProcessId) {
@@ -304,13 +307,14 @@ LoadBalancingApplication::UpdateNetworkGraph ()
   }
 
   for (int i = 0; i < m_networkGraph.nvtxs; i++) {
-	  m_networkGraph.vwgt[j] = 0;
+	  m_networkGraph.vwgt[i] = 0;
   }
 
   std::cerr << "9 * " << m_mpiProcessId << std::endl;
   for (int i = 0; i < m_mpiNumProcesses; i++) {
     if (i != m_mpiProcessId) {
       MPI_Recv((void *)tmp, m_networkGraph.gnvtxs, MPI_INT, i, 0, MPI_COMM_WORLD, &stat);
+      std::cerr << "! " << m_mpiProcessId << std::endl;
       for (int j = 0; j < m_networkGraph.nvtxs; j++) {
          m_networkGraph.vwgt[j] += tmp[m_networkGraph.vtxdist[m_mpiProcessId] + j];
       }
