@@ -23,9 +23,6 @@
 #include <sstream>
 #include <mpi.h>
 
-
-#include "lso_cluster_func.hpp"
-
 NS_LOG_COMPONENT_DEFINE ("LoadBalancingApplication");
 
 namespace ns3 {
@@ -287,8 +284,8 @@ LoadBalancingApplication::UpdateNetworkGraph ()
 
   MPI_Status stat;
 
-  parmetis_idx_t *loads = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.gnvtxs);
-  parmetis_idx_t *tmp = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.gnvtxs);
+  int *loads = (int *)malloc(sizeof(int) * m_networkGraph.gnvtxs);
+  int *tmp = (int *)malloc(sizeof(int) * m_networkGraph.gnvtxs);
 
   NodeContainer node_container =  NodeContainer::GetGlobal();
 
@@ -305,7 +302,7 @@ LoadBalancingApplication::UpdateNetworkGraph ()
       MPI_Send((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 0, MPI_COMM_WORLD);
     }
   }
-
+  MPI_Barrier (MPI_COMM_WORLD);
   for (int i = 0; i < m_networkGraph.nvtxs; i++) {
 	  m_networkGraph.vwgt[i] = 0;
   }
@@ -320,6 +317,8 @@ LoadBalancingApplication::UpdateNetworkGraph ()
       }
     }
   }
+
+  MPI_Barrier (MPI_COMM_WORLD);
   std::cerr << "10 * " << m_mpiProcessId << std::endl;
 }
 
