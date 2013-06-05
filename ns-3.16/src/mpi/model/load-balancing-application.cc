@@ -299,7 +299,7 @@ LoadBalancingApplication::UpdateNetworkGraph ()
   std::cerr << "8 * " << m_mpiProcessId << std::endl;
   for (int i = 0; i < m_mpiNumProcesses; i++){
     if (i != m_mpiProcessId) {
-      MPI_Send((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 0, MPI_COMM_WORLD);
+    	std::cerr << "((( " << MPI_Send((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 0, MPI_COMM_WORLD) << std::endl;
     }
   }
   MPI_Barrier (MPI_COMM_WORLD);
