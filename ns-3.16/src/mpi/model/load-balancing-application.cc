@@ -162,7 +162,7 @@ void LoadBalancingApplication::Reclustering ()
   		}
   		size_t app_size = applications.size();
   		MPI_Send((void *)(&app_size), 1, MPI_UNSIGNED, m_networkGraph.part_all[i], 0, MPI_COMM_WORLD);
-  		MPI_Send((void *)applications.c_str(), applications.size(), MPI_CHAR, m_networkGraph.part_all[i], 0, MPI_COMM_WORLD);
+  		MPI_Send((void *)applications.c_str(), applications.size(), MPI_CHAR, m_networkGraph.part_all[i], 1, MPI_COMM_WORLD);
 
   	  }
     }
@@ -173,7 +173,7 @@ void LoadBalancingApplication::Reclustering ()
   		size_t applicationsNum;
   		MPI_Recv((void *)&applicationsNum, 1, MPI_UNSIGNED, (int)NodeList::GetNode (i)->GetSystemId(), 0, MPI_COMM_WORLD, &stat);
   		char* applications = new char[applicationsNum];
-  		MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), 0, MPI_COMM_WORLD, &stat);
+  		MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), 1, MPI_COMM_WORLD, &stat);
 
   		std::string applicationsString(applications);
   		std::vector <std::string> nodeApplications;
@@ -296,22 +296,27 @@ LoadBalancingApplication::UpdateNetworkGraph ()
        loads[(*it)->GetId()] = (*it)->GetLoad();
       (*it)->RemoveLoad();
     }
-
-  for (int i =0; i < m_mpiNumProcesses; i++){
+  std::cerr << "8 * " << m_mpiProcessId << std::endl;
+  for (int i = 0; i < m_mpiNumProcesses; i++){
     if (i != m_mpiProcessId) {
       MPI_Send((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 0, MPI_COMM_WORLD);
     }
   }
 
-  for (int i = 0; i < m_mpiNumProcesses; i++){
+  for (int i = 0; i < m_networkGraph.nvtxs; i++) {
+	  m_networkGraph.vwgt[j] = 0;
+  }
+
+  std::cerr << "9 * " << m_mpiProcessId << std::endl;
+  for (int i = 0; i < m_mpiNumProcesses; i++) {
     if (i != m_mpiProcessId) {
       MPI_Recv((void *)tmp, m_networkGraph.gnvtxs, MPI_INT, i, 0, MPI_COMM_WORLD, &stat);
       for (int j = 0; j < m_networkGraph.nvtxs; j++) {
-         m_networkGraph.vwgt[j] = tmp[m_networkGraph.vtxdist[m_mpiProcessId] + j] + (i == 0 ? 0 : m_networkGraph.vwgt[j]);
+         m_networkGraph.vwgt[j] += tmp[m_networkGraph.vtxdist[m_mpiProcessId] + j];
       }
     }
   }
-
+  std::cerr << "10 * " << m_mpiProcessId << std::endl;
 }
 
 void
