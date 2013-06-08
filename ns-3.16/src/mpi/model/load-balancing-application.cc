@@ -161,9 +161,8 @@ void LoadBalancingApplication::Reclustering ()
 
   		for (uint32_t j = 0; j < nodeApplications.size (); ++j)
   		{
+  			applications.append(nodeApplications[j]->GetInstanceTypeId ().GetName ()).append(" ");
   			nodeApplications[j]-> SetStopTime(Simulator::Now());
-  			applications.append(nodeApplications[j]->GetInstanceTypeId ().GetName ());
-  			applications.append(" ");
   		}
   		std::cerr << "22 !" << applications << "! " << m_mpiProcessId << std::endl;
 
