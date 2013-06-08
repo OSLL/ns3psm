@@ -49,7 +49,7 @@ typedef real_t parmetis_real_t;
 
 struct graph_t
 {
-  int gnvtxs, gnedges, nvtxs;
+  int gnvtxs, nvtxs;
   parmetis_idx_t* vtxdist;
   parmetis_idx_t* xadj;
   parmetis_idx_t* adjncy;
@@ -70,8 +70,8 @@ struct graph_t
 
   graph_t()
     {
-	  wgtflag = 0;
-	  numflag = 3;
+	  wgtflag = 3;
+	  numflag = 0;
 	  ncon = 1;
 
 	  options = new parmetis_idx_t[3];
