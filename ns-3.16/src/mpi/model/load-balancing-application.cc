@@ -167,8 +167,8 @@ void LoadBalancingApplication::Reclustering ()
   		}
 
   		unsigned int  app_size = applications.size();
-  		MPI_Send((void *)(&app_size), 1, MPI_UNSIGNED, m_networkGraph.part_all[i], 123, MPI_COMM_WORLD);
-  		MPI_Send((void *)applications.c_str(), applications.size(), MPI_CHAR, m_networkGraph.part_all[i], 124, MPI_COMM_WORLD);
+  		MPI_Send((void *)(&app_size), 1, MPI_UNSIGNED, m_networkGraph.part_all[i], i + 123, MPI_COMM_WORLD);
+  		MPI_Send((void *)applications.c_str(), applications.size(), MPI_CHAR, m_networkGraph.part_all[i], i + 124, MPI_COMM_WORLD);
 
   	  }
     }
@@ -181,18 +181,19 @@ void LoadBalancingApplication::Reclustering ()
   		Ptr<Node> nodeForMoving = NodeList::GetNode (i);
 
   		unsigned int applicationsNum;
-  		MPI_Recv((void *)&applicationsNum, 1, MPI_UNSIGNED, (int)NodeList::GetNode (i)->GetSystemId(), 123, MPI_COMM_WORLD, &stat);
+  		MPI_Recv((void *)&applicationsNum, 1, MPI_UNSIGNED, (int)NodeList::GetNode (i)->GetSystemId(), i + 123, MPI_COMM_WORLD, &stat);
   		char* applications = new char[applicationsNum];
-  		MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), 124, MPI_COMM_WORLD, &stat);
+  		MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), i + 124, MPI_COMM_WORLD, &stat);
 
   		std::string applicationsString(applications);
   		std::vector <std::string> nodeApplications;
   		boost::algorithm::split(nodeApplications, applicationsString, boost::algorithm::is_any_of(" "));
   		nodeForMoving-> SetSystemId (m_networkGraph.part_all[i]);
-  	    std::cerr << "44 " << m_mpiProcessId << std::endl;
+
   		for (uint32_t j = 0; j < nodeApplications.size (); ++j)
   		{
   	        ObjectFactory objectFactory;
+  	        std::cerr << "44 nodeApplications[j] !" << m_mpiProcessId << std::endl;
   	        objectFactory.SetTypeId (TypeId::LookupByName (nodeApplications[j]) );
   	        Ptr<Application> application = objectFactory.Create<Application> ();
   	        application-> SetStartTime (Simulator::Now());
