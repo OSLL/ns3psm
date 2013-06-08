@@ -156,7 +156,7 @@ void LoadBalancingApplication::Reclustering ()
   	  if (((int)NodeList::GetNode (i)->GetSystemId() == m_mpiProcessId) && (m_networkGraph.part_all[i] != m_mpiProcessId)) {
   		Ptr<Node> nodeForMoving = NodeList::GetNode (i);
 
-  		std::string applications;
+  		std::string applications("");
   		std::vector<Ptr<Application> > nodeApplications = nodeForMoving->GetApplications ();
 
   		for (uint32_t j = 0; j < nodeApplications.size (); ++j)
@@ -165,6 +165,7 @@ void LoadBalancingApplication::Reclustering ()
   			applications.append(nodeApplications[j]->GetInstanceTypeId ().GetName ());
   			applications.append(" ");
   		}
+  		std::cerr << "22 !" << applications << "! " << m_mpiProcessId << std::endl;
 
   		unsigned int  app_size = applications.size();
   		MPI_Send((void *)(&app_size), 1, MPI_UNSIGNED, m_networkGraph.part_all[i], i + 123, MPI_COMM_WORLD);
