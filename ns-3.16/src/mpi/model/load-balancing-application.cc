@@ -121,7 +121,8 @@ void LoadBalancingApplication::Reclustering ()
   NS_LOG_FUNCTION (this);
   UpdateNetworkGraph ();
   MPI_Status stat;
-  MPI_Comm comm = MPI_COMM_WORLD;
+  MPI_Comm comm;
+  MPI_Comm_dup(MPI_COMM_WORLD, &comm);
 
 
     ParMETIS_V3_RefineKway(m_networkGraph.vtxdist, m_networkGraph.xadj, m_networkGraph.adjncy, m_networkGraph.vwgt,
