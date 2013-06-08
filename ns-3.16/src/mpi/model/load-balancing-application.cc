@@ -156,19 +156,19 @@ void LoadBalancingApplication::Reclustering ()
   	  if (((int)NodeList::GetNode (i)->GetSystemId() == m_mpiProcessId) && (m_networkGraph.part_all[i] != m_mpiProcessId)) {
   		Ptr<Node> nodeForMoving = NodeList::GetNode (i);
 
-  		std::string applications("");
+  		std::string applications;
   		std::vector<Ptr<Application> > nodeApplications = nodeForMoving->GetApplications ();
+		for (uint32_t j = 0; j < nodeApplications.size (); ++j)
+		{
+			applications.append(nodeApplications[j]->GetInstanceTypeId ().GetName ());
+			applications.append(" ");
+			nodeApplications[j]-> SetStopTime(Simulator::Now());
+		}
+		std::cerr << "22 !" << applications << "! " << m_mpiProcessId << std::endl;
 
-  		for (uint32_t j = 0; j < nodeApplications.size (); ++j)
-  		{
-  			applications.append(nodeApplications[j]->GetInstanceTypeId ().GetName ()).append(" ");
-  			nodeApplications[j]-> SetStopTime(Simulator::Now());
-  		}
-  		std::cerr << "22 !" << applications << "! " << m_mpiProcessId << std::endl;
-
-  		unsigned int  app_size = applications.size();
-  		MPI_Send((void *)(&app_size), 1, MPI_UNSIGNED, m_networkGraph.part_all[i], i + 123, MPI_COMM_WORLD);
-  		MPI_Send((void *)applications.c_str(), applications.size(), MPI_CHAR, m_networkGraph.part_all[i], i + 124, MPI_COMM_WORLD);
+		unsigned int  app_size = applications.size();
+		MPI_Send((void *)(&app_size), 1, MPI_UNSIGNED, m_networkGraph.part_all[i], i + 123, MPI_COMM_WORLD);
+		if (app_size > 0) MPI_Send((void *)applications.c_str(), applications.size(), MPI_CHAR, m_networkGraph.part_all[i], i + 124, MPI_COMM_WORLD);
 
   	  }
     }
@@ -182,24 +182,27 @@ void LoadBalancingApplication::Reclustering ()
 
   		unsigned int applicationsNum;
   		MPI_Recv((void *)&applicationsNum, 1, MPI_UNSIGNED, (int)NodeList::GetNode (i)->GetSystemId(), i + 123, MPI_COMM_WORLD, &stat);
-  		char* applications = new char[applicationsNum];
-  		MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), i + 124, MPI_COMM_WORLD, &stat);
+  		if (app_size > 0) {
+  			char* applications = new char[applicationsNum];
 
-  		std::string applicationsString(applications);
-  		std::cerr << "33 !" << applicationsString << "! " << m_mpiProcessId << std::endl;
-  		std::vector <std::string> nodeApplications;
-  		boost::algorithm::split(nodeApplications, applicationsString, boost::algorithm::is_any_of(" "));
-  		nodeForMoving-> SetSystemId (m_networkGraph.part_all[i]);
+			MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), i + 124, MPI_COMM_WORLD, &stat);
 
-  		for (uint32_t j = 0; j < nodeApplications.size (); ++j)
-  		{
-  	        ObjectFactory objectFactory;
-  	        std::cerr << "44 !" << nodeApplications[j] << "! " << m_mpiProcessId << std::endl;
-  	        objectFactory.SetTypeId (TypeId::LookupByName (nodeApplications[j]) );
-  	        Ptr<Application> application = objectFactory.Create<Application> ();
-  	        application-> SetStartTime (Simulator::Now());
-  	        application-> Start ();
-  	        nodeForMoving->AddApplication (application);
+			std::string applicationsString(applications);
+			std::cerr << "33 !" << applicationsString << "! " << m_mpiProcessId << std::endl;
+			std::vector <std::string> nodeApplications;
+			boost::algorithm::split(nodeApplications, applicationsString, boost::algorithm::is_any_of(" "));
+			nodeForMoving-> SetSystemId (m_networkGraph.part_all[i]);
+
+			for (uint32_t j = 0; j < nodeApplications.size (); ++j)
+			{
+				ObjectFactory objectFactory;
+				std::cerr << "44 !" << nodeApplications[j] << "! " << m_mpiProcessId << std::endl;
+				objectFactory.SetTypeId (TypeId::LookupByName (nodeApplications[j]) );
+				Ptr<Application> application = objectFactory.Create<Application> ();
+				application-> SetStartTime (Simulator::Now());
+				application-> Start ();
+				nodeForMoving->AddApplication (application);
+			}
   		}
   	  }
     }
