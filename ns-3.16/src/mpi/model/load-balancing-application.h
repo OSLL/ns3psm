@@ -58,7 +58,7 @@ struct graph_t
   parmetis_idx_t nparts;
   parmetis_real_t* tpwgts;
   parmetis_idx_t* part;
-  int* part_all;
+  parmetis_idx_t* part_all;
 
   parmetis_idx_t wgtflag;
   parmetis_idx_t numflag;

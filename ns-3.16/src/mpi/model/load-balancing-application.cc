@@ -134,21 +134,19 @@ void LoadBalancingApplication::Reclustering ()
 
     MPI_Barrier (MPI_COMM_WORLD);
 
-    int* part = (int *)malloc(sizeof(int) * m_networkGraph.nvtxs);
-
-    for (int i = 0; i < m_networkGraph.nvtxs; i++) {
-    	part[i] = m_networkGraph.part[i];
-    }
-
     for (int i = 0; i < m_mpiNumProcesses; i++){
-      if (i != m_mpiProcessId) MPI_Send((void *)part, m_networkGraph.nvtxs, MPI_INT, i, 123, MPI_COMM_WORLD);
+      if (i != m_mpiProcessId) {
+        MPI_Send((void *)m_networkGraph.part, m_networkGraph.nvtxs, MPI_SHORT, i, 123, MPI_COMM_WORLD);
+      }
     }
 
     std::cerr << "11 " << m_mpiProcessId << std::endl;
 
     for (int i = 0; i < m_mpiNumProcesses; i++){
-    	if (i != m_mpiProcessId) MPI_Recv((void *)&m_networkGraph.part_all[m_networkGraph.vtxdist[i]],
-           m_networkGraph.vtxdist[i + 1] - m_networkGraph.vtxdist[i], MPI_INT, i, 123, MPI_COMM_WORLD, &stat);
+      if (i != m_mpiProcessId) {
+        MPI_Recv((void *)&m_networkGraph.part_all[m_networkGraph.vtxdist[i]],
+           m_networkGraph.vtxdist[i + 1] - m_networkGraph.vtxdist[i], MPI_SHORT, i, 123, MPI_COMM_WORLD, &stat);
+      }
     }
     std::cerr << "22 " << m_mpiProcessId << std::endl;
 
@@ -216,8 +214,8 @@ LoadBalancingApplication::CreateNetworkGraph (void)
   m_networkGraph.nvtxs = m_networkGraph.vtxdist[m_mpiProcessId + 1] - m_networkGraph.vtxdist[m_mpiProcessId];
   m_networkGraph.xadj = new parmetis_idx_t [m_networkGraph.nvtxs + 1];
   m_networkGraph.vwgt = new parmetis_idx_t [m_networkGraph.nvtxs];
-  m_networkGraph.part = new parmetis_idx_t [m_networkGraph.nvtxs];
-  m_networkGraph.part_all = (int *)malloc(sizeof(int) * m_networkGraph.gnvtxs);
+  m_networkGraph.part = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.nvtxs);
+  m_networkGraph.part_all = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.gnvtxs);
   parmetis_idx_t index = 0;
 
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
