@@ -134,14 +134,14 @@ void LoadBalancingApplication::Reclustering ()
     MPI_Barrier (MPI_COMM_WORLD);
 
     for (int i = 0; i < m_mpiNumProcesses; i++){
-      MPI_Send((void *)m_networkGraph.part, m_networkGraph.nvtxs, MPI_INT, i, 123, MPI_COMM_WORLD);
+      MPI_Send((void *)m_networkGraph.part, m_networkGraph.nvtxs, MPI_SHORT, i, 123, MPI_COMM_WORLD);
     }
 
     std::cerr << "11 " << m_mpiProcessId << std::endl;
 
     for (int i = 0; i < m_mpiNumProcesses; i++){
         MPI_Recv((void *)&m_networkGraph.part_all[m_networkGraph.vtxdist[i]],
-           m_networkGraph.vtxdist[i + 1] - m_networkGraph.vtxdist[i], MPI_INT, i, 123, MPI_COMM_WORLD, &stat);
+           m_networkGraph.vtxdist[i + 1] - m_networkGraph.vtxdist[i], MPI_SHORT, i, 123, MPI_COMM_WORLD, &stat);
     }
     std::cerr << "22 " << m_mpiProcessId << std::endl;
 
