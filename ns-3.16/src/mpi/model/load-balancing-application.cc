@@ -162,8 +162,8 @@ void LoadBalancingApplication::Reclustering ()
   		for (uint32_t j = 0; j < nodeApplications.size (); ++j)
   		{
   			nodeApplications[j]-> SetStopTime(Simulator::Now());
-  			applications.append(" ");
   			applications.append(nodeApplications[j]->GetInstanceTypeId ().GetName ());
+  			applications.append(" ");
   		}
 
   		unsigned int  app_size = applications.size();
