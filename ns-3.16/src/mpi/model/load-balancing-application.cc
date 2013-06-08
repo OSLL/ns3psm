@@ -212,7 +212,6 @@ LoadBalancingApplication::CreateNetworkGraph (void)
   m_networkGraph.vwgt = new parmetis_idx_t [m_networkGraph.nvtxs];
   m_networkGraph.part = new parmetis_idx_t[m_networkGraph.nvtxs];
   m_networkGraph.part_all = new parmetis_idx_t[m_networkGraph.gnvtxs];
-  m_networkGraph.gnedges = 0;
   parmetis_idx_t index = 0;
 
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
@@ -228,13 +227,11 @@ LoadBalancingApplication::CreateNetworkGraph (void)
               if (!localNetDevice->IsPointToPoint ()) continue;
               Ptr<Channel> channel = localNetDevice->GetChannel ();
               if (channel == 0) continue;
-              m_networkGraph.gnedges++;
               edge_index++;
             }
           m_networkGraph.xadj[index + 1] = edge_index;
         }
       m_networkGraph.part_all[(*it)->GetId()] = (*it)->GetSystemId();
-      m_networkGraph.part[index] = (*it)->GetSystemId();
     }
 
   m_networkGraph.xadj[0] = 0;
@@ -267,6 +264,7 @@ LoadBalancingApplication::CreateNetworkGraph (void)
             }
         }
     }
+
   m_networkGraph.nparts = m_mpiNumProcesses;
   m_networkGraph.tpwgts = new parmetis_real_t[m_networkGraph.nparts];
   parmetis_real_t tpw = 1.0/(parmetis_real_t)m_networkGraph.nparts;
@@ -282,7 +280,6 @@ LoadBalancingApplication::UpdateNetworkGraph ()
 {
 
   MPI_Status stat;
-
   int *loads = (int *)malloc(sizeof(int) * m_networkGraph.gnvtxs);
 
   NodeContainer node_container =  NodeContainer::GetGlobal();
@@ -292,20 +289,14 @@ LoadBalancingApplication::UpdateNetworkGraph ()
        loads[(*it)->GetId()] = (*it)->GetLoad();
       (*it)->RemoveLoad();
     }
-
-
-
   for (int i = 0; i < m_mpiNumProcesses; i++){
     if (i != m_mpiProcessId) {
     	MPI_Send((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 123, MPI_COMM_WORLD);
     }
   }
-
   for (int i = 0; i < m_networkGraph.nvtxs; i++) {
 	  m_networkGraph.vwgt[i] = 0;
   }
-
-
   for (int i = 0; i < m_mpiNumProcesses; i++) {
     if (i != m_mpiProcessId) {
       MPI_Recv((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 123, MPI_COMM_WORLD, &stat);
@@ -316,7 +307,6 @@ LoadBalancingApplication::UpdateNetworkGraph ()
   }
 
   MPI_Barrier (MPI_COMM_WORLD);
-  std::cerr << "10 * " << m_mpiProcessId << std::endl;
 }
 
 void
