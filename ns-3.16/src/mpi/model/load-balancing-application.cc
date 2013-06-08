@@ -130,8 +130,6 @@ void LoadBalancingApplication::Reclustering ()
   		  &m_networkGraph.nparts, m_networkGraph.tpwgts, m_networkGraph.ubvec, m_networkGraph.options,
           &m_networkGraph.edgecut, m_networkGraph.part, &comm);
 
-    std::cerr << "Reclustering !!!! " << m_mpiProcessId << std::endl;
-
     MPI_Barrier (MPI_COMM_WORLD);
 
     for (int i = 0; i < m_mpiNumProcesses; i++){
@@ -140,7 +138,10 @@ void LoadBalancingApplication::Reclustering ()
       }
     }
 
-    std::cerr << "11 " << m_mpiProcessId << std::endl;
+    for (int i = 0; i < m_networkGraph.nvtxs; i++) {
+    	m_networkGraph.part_all[m_networkGraph.vtxdist[m_mpiProcessId] + i] = m_networkGraph.part[i];
+    }
+
 
     for (int i = 0; i < m_mpiNumProcesses; i++){
       if (i != m_mpiProcessId) {
@@ -148,12 +149,13 @@ void LoadBalancingApplication::Reclustering ()
            m_networkGraph.vtxdist[i + 1] - m_networkGraph.vtxdist[i], MPI_SHORT, i, 123, MPI_COMM_WORLD, &stat);
       }
     }
-    std::cerr << "22 " << m_mpiProcessId << std::endl;
+
 
     for (int i = 0; i < m_networkGraph.gnvtxs; ++i) {
+
   	  if (((int)NodeList::GetNode (i)->GetSystemId() == m_mpiProcessId) && (m_networkGraph.part_all[i] != m_mpiProcessId)) {
   		Ptr<Node> nodeForMoving = NodeList::GetNode (i);
-  		//nodeForMoving-> SetSystemId (m_networkGraph.part_all[i]);
+
   		std::string applications;
   		std::vector<Ptr<Application> > nodeApplications = nodeForMoving->GetApplications ();
 
@@ -163,17 +165,22 @@ void LoadBalancingApplication::Reclustering ()
   			applications.append(" ");
   			applications.append(nodeApplications[j]->GetInstanceTypeId ().GetName ());
   		}
-  		size_t app_size = applications.size();
+
+  		unsigned int  app_size = applications.size();
   		MPI_Send((void *)(&app_size), 1, MPI_UNSIGNED, m_networkGraph.part_all[i], 123, MPI_COMM_WORLD);
   		MPI_Send((void *)applications.c_str(), applications.size(), MPI_CHAR, m_networkGraph.part_all[i], 124, MPI_COMM_WORLD);
 
   	  }
     }
-    std::cerr << "33 " << m_mpiProcessId << std::endl;
+
+    MPI_Barrier (MPI_COMM_WORLD);
+
     for (int i = 0; i < m_networkGraph.gnvtxs; ++i) {
   	  if ((m_networkGraph.part_all[i] == m_mpiProcessId) && ((int)NodeList::GetNode (i)->GetSystemId() != m_mpiProcessId)) {
+
   		Ptr<Node> nodeForMoving = NodeList::GetNode (i);
-  		size_t applicationsNum;
+
+  		unsigned int applicationsNum;
   		MPI_Recv((void *)&applicationsNum, 1, MPI_UNSIGNED, (int)NodeList::GetNode (i)->GetSystemId(), 123, MPI_COMM_WORLD, &stat);
   		char* applications = new char[applicationsNum];
   		MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), 124, MPI_COMM_WORLD, &stat);
@@ -278,7 +285,6 @@ LoadBalancingApplication::CreateNetworkGraph (void)
   }
 
   MPI_Barrier (MPI_COMM_WORLD);
-
 }
 
 void
