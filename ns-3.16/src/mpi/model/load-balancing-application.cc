@@ -209,8 +209,8 @@ LoadBalancingApplication::CreateNetworkGraph (void)
   m_networkGraph.nvtxs = m_networkGraph.vtxdist[m_mpiProcessId + 1] - m_networkGraph.vtxdist[m_mpiProcessId];
   m_networkGraph.xadj = new parmetis_idx_t [m_networkGraph.nvtxs + 1];
   m_networkGraph.vwgt = new parmetis_idx_t [m_networkGraph.nvtxs];
-  m_networkGraph.part = new parmetis_idx_t[m_networkGraph.nvtxs];
-  m_networkGraph.part_all = new parmetis_idx_t[m_networkGraph.gnvtxs];
+  m_networkGraph.part = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.nvtxs);
+  m_networkGraph.part_all = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.gnvtxs);
   parmetis_idx_t index = 0;
 
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
