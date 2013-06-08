@@ -131,7 +131,9 @@ void LoadBalancingApplication::Reclustering ()
 
     std::cerr << "Reclustering !!!! " << m_mpiProcessId << std::endl;
 
-    for (int i =0; i < m_mpiNumProcesses; i++){
+    MPI_Barrier (MPI_COMM_WORLD);
+
+    for (int i = 0; i < m_mpiNumProcesses; i++){
       MPI_Send((void *)m_networkGraph.part, m_networkGraph.nvtxs, MPI_INT, i, 123, MPI_COMM_WORLD);
     }
 
@@ -269,6 +271,8 @@ LoadBalancingApplication::CreateNetworkGraph (void)
   for (int i = 0; i < m_networkGraph.nparts; i++) {
 	  m_networkGraph.tpwgts[i] =tpw;
   }
+
+  MPI_Barrier (MPI_COMM_WORLD);
 
 }
 
