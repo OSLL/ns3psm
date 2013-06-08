@@ -186,6 +186,7 @@ void LoadBalancingApplication::Reclustering ()
   		MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), i + 124, MPI_COMM_WORLD, &stat);
 
   		std::string applicationsString(applications);
+  		std::cerr << "33 !" << applicationsString << "! " << m_mpiProcessId << std::endl;
   		std::vector <std::string> nodeApplications;
   		boost::algorithm::split(nodeApplications, applicationsString, boost::algorithm::is_any_of(" "));
   		nodeForMoving-> SetSystemId (m_networkGraph.part_all[i]);
