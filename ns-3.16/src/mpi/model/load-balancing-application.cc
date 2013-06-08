@@ -193,7 +193,7 @@ void LoadBalancingApplication::Reclustering ()
   		for (uint32_t j = 0; j < nodeApplications.size (); ++j)
   		{
   	        ObjectFactory objectFactory;
-  	        std::cerr << "44 nodeApplications[j] !" << m_mpiProcessId << std::endl;
+  	        std::cerr << "44 !" << nodeApplications[j] << "! " << m_mpiProcessId << std::endl;
   	        objectFactory.SetTypeId (TypeId::LookupByName (nodeApplications[j]) );
   	        Ptr<Application> application = objectFactory.Create<Application> ();
   	        application-> SetStartTime (Simulator::Now());
