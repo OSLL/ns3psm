@@ -182,7 +182,7 @@ void LoadBalancingApplication::Reclustering ()
 
   		unsigned int applicationsNum;
   		MPI_Recv((void *)&applicationsNum, 1, MPI_UNSIGNED, (int)NodeList::GetNode (i)->GetSystemId(), i + 123, MPI_COMM_WORLD, &stat);
-  		if (app_size > 0) {
+  		if (applicationsNum > 0) {
   			char* applications = new char[applicationsNum];
 
 			MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), i + 124, MPI_COMM_WORLD, &stat);
