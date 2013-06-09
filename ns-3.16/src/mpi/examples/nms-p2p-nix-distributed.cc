@@ -698,7 +698,7 @@ main (int argc, char *argv[])
 
   std::cout << "Running simulator..." << std::endl;
   TIMER_NOW (t1);
-  Simulator::Stop (Seconds (300.0));
+  Simulator::Stop (Seconds (100.0));
   Simulator::Run ();
   TIMER_NOW (t2);
   std::cout << "Simulator finished." << std::endl;
