@@ -571,7 +571,7 @@ main (int argc, char *argv[])
 
                       sinkApp.Start (Seconds (0.0));
                     }
-                  else if (systemId == z % systemCount)
+                  else if (systemId == clusters_net2LAN[z][i][j])
                     {
                       PacketSinkHelper sinkHelper
                         ("ns3::UdpSocketFactory",
@@ -597,19 +597,22 @@ main (int argc, char *argv[])
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
                       clientApp.Start (Seconds (r2));
                     }
-                  else if (systemId == x % systemCount)
-                    {
+                  else {
                       r1 = 2 + (int)(4 * urng->GetValue ());
-                      r2 = 10 * urng->GetValue ();
-                      OnOffHelper client ("ns3::UdpSocketFactory", Address ());
+                	 if (systemId == clusters_net1[x][r1])
+                      {
 
-                      AddressValue remoteAddress
-                        (InetSocketAddress (ifs2LAN[z][i][j].GetAddress (0), 9999));
+						  r2 = 10 * urng->GetValue ();
+						  OnOffHelper client ("ns3::UdpSocketFactory", Address ());
 
-                      client.SetAttribute ("Remote", remoteAddress);
-                      ApplicationContainer clientApp;
-                      clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
-                      clientApp.Start (Seconds (r2));
+						  AddressValue remoteAddress
+							(InetSocketAddress (ifs2LAN[z][i][j].GetAddress (0), 9999));
+
+						  client.SetAttribute ("Remote", remoteAddress);
+						  ApplicationContainer clientApp;
+						  clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
+						  clientApp.Start (Seconds (r2));
+						}
                     }
                 }
             }
@@ -631,7 +634,7 @@ main (int argc, char *argv[])
 
                       sinkApp.Start (Seconds (0.0));
                     }
-                  else if (systemId == z % systemCount)
+                  else if (systemId == nodes_net3LAN[z][i][j])
                     {
                       PacketSinkHelper sinkHelper
                         ("ns3::UdpSocketFactory",
@@ -657,19 +660,21 @@ main (int argc, char *argv[])
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
                       clientApp.Start (Seconds (r2));
                     }
-                  else if (systemId == x % systemCount)
-                    {
+                  else {
                       r1 = 2 + (int)(4 * urng->GetValue ());
-                      r2 = 10 * urng->GetValue ();
-                      OnOffHelper client ("ns3::UdpSocketFactory", Address ());
+                	  if (systemId == clusters_net1[x][r1])
+						{
+						  r2 = 10 * urng->GetValue ();
+						  OnOffHelper client ("ns3::UdpSocketFactory", Address ());
 
-                      AddressValue remoteAddress
-                        (InetSocketAddress (ifs3LAN[z][i][j].GetAddress (0), 9999));
+						  AddressValue remoteAddress
+							(InetSocketAddress (ifs3LAN[z][i][j].GetAddress (0), 9999));
 
-                      client.SetAttribute ("Remote", remoteAddress);
-                      ApplicationContainer clientApp;
-                      clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
-                      clientApp.Start (Seconds (r2));
+						  client.SetAttribute ("Remote", remoteAddress);
+						  ApplicationContainer clientApp;
+						  clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
+						  clientApp.Start (Seconds (r2));
+						}
                     }
                 }
             }
