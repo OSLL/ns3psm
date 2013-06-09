@@ -598,7 +598,7 @@ main (int argc, char *argv[])
                       clientApp.Start (Seconds (r2));
                     }
                   else {
-                      r1 = 2 + (int)(4 * urng->GetValue ());
+                      r1 = 3;
                 	 if (systemId == clusters_net1[x][r1])
                       {
 
@@ -634,7 +634,7 @@ main (int argc, char *argv[])
 
                       sinkApp.Start (Seconds (0.0));
                     }
-                  else if (systemId == nodes_net3LAN[z][i][j])
+                  else if (systemId == clusters_net3LAN[z][i][j])
                     {
                       PacketSinkHelper sinkHelper
                         ("ns3::UdpSocketFactory",
@@ -661,7 +661,7 @@ main (int argc, char *argv[])
                       clientApp.Start (Seconds (r2));
                     }
                   else {
-                      r1 = 2 + (int)(4 * urng->GetValue ());
+                      r1 = 2;
                 	  if (systemId == clusters_net1[x][r1])
 						{
 						  r2 = 10 * urng->GetValue ();
