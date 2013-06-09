@@ -22,6 +22,8 @@
 #include "default-simulator-impl.h"
 #include "scheduler.h"
 #include "event-impl.h"
+#include "ns3/channel.h"
+#include "ns3/node-container.h"
 
 #include "ptr.h"
 #include "pointer.h"
@@ -66,6 +68,7 @@ DefaultSimulatorImpl::DefaultSimulatorImpl ()
   m_unscheduledEvents = 0;
   m_eventsWithContextEmpty = true;
   m_main = SystemThread::Self();
+  loads.resize(1076, 0);
 }
 
 DefaultSimulatorImpl::~DefaultSimulatorImpl ()
@@ -137,6 +140,11 @@ DefaultSimulatorImpl::ProcessOneEvent (void)
   m_currentTs = next.key.m_ts;
   m_currentContext = next.key.m_context;
   m_currentUid = next.key.m_uid;
+
+  if ((m_currentContext > 0) && (m_currentContext < 1076))
+  {
+	  loads[m_currentContext]++;
+  }
   next.impl->Invoke ();
   next.impl->Unref ();
 

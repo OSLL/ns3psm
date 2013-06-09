@@ -60,6 +60,10 @@ public:
   virtual uint32_t GetSystemId (void) const; 
   virtual uint32_t GetContext (void) const;
 
+  std::vector<uint32_t> GetLoads() {
+	  return loads;
+  }
+
 private:
   virtual void DoDispose (void);
   void ProcessOneEvent (void);
@@ -79,6 +83,8 @@ private:
   DestroyEvents m_destroyEvents;
   bool m_stop;
   Ptr<Scheduler> m_events;
+
+  std::vector<uint32_t> loads;
 
   uint32_t m_uid;
   uint32_t m_currentUid;

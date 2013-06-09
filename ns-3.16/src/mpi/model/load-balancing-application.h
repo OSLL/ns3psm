@@ -138,9 +138,6 @@ private:
 
   int m_mpiProcessId;
   int m_mpiNumProcesses;
-
-private:
-  void ScheduleReclusteringEvent ();
 };
 
 } /* namespace ns3 */

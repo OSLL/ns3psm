@@ -51,6 +51,32 @@
 
 #include "../model/load-balancing-application.h"
 
+#include <boost/graph/graphviz.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include "ns3/node-container.h"
+
+// vertex_name - for reading from dot
+// vertex_color - load
+// vertex_distance - # cluster node
+typedef boost::property < boost::vertex_name_t, uint32_t, boost::property < boost::vertex_color_t, uint32_t, boost::property < boost::vertex_distance_t, uint32_t > > > vertex_p;
+// edge_weight - traffic
+// edge_weight2 - delay
+typedef boost::property < boost::edge_weight_t, uint32_t, boost::property < boost::edge_weight2_t, int64_t > > edge_p;
+
+typedef boost::adjacency_list <
+                    boost::vecS,
+                    boost::vecS,
+                    boost::undirectedS,
+                    vertex_p,
+                    edge_p
+> graph_nms_t; //graph type
+
+typedef boost:: graph_traits<  graph_t3 >::vertex_descriptor vertex_descriptor;
+typedef boost::graph_traits<  graph_t3 >::edge_descriptor edge_descriptor;
+typedef boost::graph_traits<  graph_t3 >::adjacency_iterator graph_adjacency_iterator;
+typedef boost::graph_traits<  graph_t3 >::vertex_iterator graph_vertex_iterator;
+typedef boost::graph_traits<  graph_t3 >::edge_iterator graph_edge_iterator;
+
 #ifdef NS3_MPI
 #include <mpi.h>
 #endif
@@ -117,6 +143,71 @@ main (int argc, char *argv[])
   NodeContainer nodes_net0[nCN][3], nodes_net1[nCN][6], nodes_netLR[nCN],
                 nodes_net2[nCN][14], nodes_net2LAN[nCN][7][nLANClients],
                 nodes_net3[nCN][9], nodes_net3LAN[nCN][5][nLANClients];
+
+  uint32_t clusters_net0[nCN][3], clusters_net1[nCN][6], clusters_netLR[2 * nCN],
+  clusters_net2[nCN][14], clusters_net2LAN[nCN][7][nLANClients],
+  clusters_net3[nCN][9], clusters_net3LAN[nCN][5][nLANClients];
+
+  graph_nms_t g;
+
+  boost::property_map<graph_nms_t, boost::vertex_name_t>::type name =
+  boost::get(boost::vertex_name, g);
+  dp.property("node_id", name);
+
+  boost::property_map<graph_nms_t, boost::vertex_distance_t>::type color =
+  boost::get(boost::vertex_distance, g);
+  dp.property("label", color);
+
+  std::ifstream res_file("graph_input.dot");
+  boost::read_graphviz(res_file, g, dp, "node_id");
+
+  int node_num = 0;
+
+  for (uint32_t z = 0; z < nCN; ++z)
+      {
+        for (int i = 0; i < 3; ++i)
+          {
+            clusters_net0[z][i] = boost::get(boost::vertex_distance, g, boost::get(boost::vertex_index, g, node_num++));
+          }
+
+        for (int i = 0; i < 6; ++i)
+          {
+            clusters_net1[z][i] =  boost::get(boost::vertex_distance, g, boost::get(boost::vertex_index, g, node_num++));
+          }
+
+        for (int i = 0; i < 14; ++i)
+          {
+            clusters_net2[z][i] =  boost::get(boost::vertex_distance, g, boost::get(boost::vertex_index, g, node_num++));
+          }
+        for (int i = 0; i < 7; ++i)
+          {
+
+            for (uint32_t j = 0; j < nLANClients; ++j)
+              {
+                clusters_net2LAN[z][i][j] =  boost::get(boost::vertex_distance, g, boost::get(boost::vertex_index, g, node_num++));
+              }
+          }
+
+        for (int i = 0; i < 9; ++i)
+          {
+            clusters_net3[z][i] =  boost::get(boost::vertex_distance, g, boost::get(boost::vertex_index, g, node_num++));
+          }
+
+        for (int i = 0; i < 5; ++i)
+          {
+            for (uint32_t j = 0; j < nLANClients; ++j)
+              {
+                clusters_net3LAN[z][i][j] =  boost::get(boost::vertex_distance, g, boost::get(boost::vertex_index, g, node_num++));
+              }
+          }
+
+        clusters_netLR[2 * z] =  boost::get(boost::vertex_distance, g, boost::get(boost::vertex_index, g, node_num++));
+        clusters_netLR[2 * z + 1] =  boost::get(boost::vertex_distance, g, boost::get(boost::vertex_index, g, node_num++));
+      }
+
+
+
+
   PointToPointHelper p2p_2gb200ms, p2p_1gb5ms, p2p_100mb1ms;
   InternetStackHelper stack;
   Ipv4InterfaceContainer ifs, ifs0[nCN][3], ifs1[nCN][6], ifs2[nCN][14],
@@ -143,6 +234,7 @@ main (int argc, char *argv[])
       stack.SetRoutingHelper (list); // has effect on the next Install ()
     }
 
+
   // Create Campus Networks
   for (uint32_t z = 0; z < nCN; ++z)
     {
@@ -151,7 +243,7 @@ main (int argc, char *argv[])
       std::cout << "  SubNet [ 0";
       for (int i = 0; i < 3; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (z % systemCount);
+          Ptr<Node> node = CreateObject<Node> (clusters_net0[z][i]);
           nodes_net0[z][i].Add (node);
           stack.Install (nodes_net0[z][i]);
         }
@@ -167,7 +259,7 @@ main (int argc, char *argv[])
       std::cout << " 1";
       for (int i = 0; i < 6; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (z % systemCount);
+          Ptr<Node> node = CreateObject<Node> (clusters_net1[z][i]);
           nodes_net1[z][i].Add (node);
           stack.Install (nodes_net1[z][i]);
         }
@@ -199,7 +291,7 @@ main (int argc, char *argv[])
       std::cout << " 2";
       for (int i = 0; i < 14; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (z % systemCount);
+          Ptr<Node> node = CreateObject<Node> (clusters_net2[z][i]);
           nodes_net2[z][i].Add (node);
           stack.Install (nodes_net2[z][i]);
         }
@@ -230,7 +322,7 @@ main (int argc, char *argv[])
           address.SetBase (oss.str ().c_str (), "255.255.255.0");
           for (uint32_t j = 0; j < nLANClients; ++j)
             {
-              Ptr<Node> node = CreateObject<Node> (z % systemCount);
+              Ptr<Node> node = CreateObject<Node> (clusters_net2LAN[z][i][j]);
               nodes_net2LAN[z][i][j].Add (node);
               stack.Install (nodes_net2LAN[z][i][j]);
               nodes_net2LAN[z][i][j].Add (nodes_net2[z][i + 7].Get (0));
@@ -242,7 +334,7 @@ main (int argc, char *argv[])
       std::cout << " 3 ]" << std::endl;
       for (int i = 0; i < 9; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (z % systemCount);
+          Ptr<Node> node = CreateObject<Node> (clusters_net3[z][i]);
           nodes_net3[z][i].Add (node);
           stack.Install (nodes_net3[z][i]);
         }
@@ -268,7 +360,7 @@ main (int argc, char *argv[])
           address.SetBase (oss.str ().c_str (), "255.255.255.255");
           for (uint32_t j = 0; j < nLANClients; ++j)
             {
-              Ptr<Node> node = CreateObject<Node> (z % systemCount);
+              Ptr<Node> node = CreateObject<Node> (clusters_net3LAN[z][i][j]);
               nodes_net3LAN[z][i][j].Add (node);
               stack.Install (nodes_net3LAN[z][i][j]);
               nodes_net3LAN[z][i][j].Add (nodes_net3[z][i + 4].Get (0));
@@ -278,8 +370,8 @@ main (int argc, char *argv[])
         }
       std::cout << "  Connecting Subnets..." << std::endl;
       // Create Lone Routers (Node 4 & 5)
-      Ptr<Node> node1 = CreateObject<Node> (z % systemCount);
-      Ptr<Node> node2 = CreateObject<Node> (z % systemCount);
+      Ptr<Node> node1 = CreateObject<Node> (clusters_netLR[2 * z]);
+      Ptr<Node> node2 = CreateObject<Node> (clusters_netLR[2 * z + 1]);
       nodes_netLR[z].Add (node1);
       nodes_netLR[z].Add (node2);
       stack.Install (nodes_netLR[z]);
@@ -602,7 +694,7 @@ main (int argc, char *argv[])
 
   std::cout << "Running simulator..." << std::endl;
   TIMER_NOW (t1);
-  Simulator::Stop (Seconds (100.0));
+  Simulator::Stop (Seconds (300.0));
   Simulator::Run ();
   TIMER_NOW (t2);
   std::cout << "Simulator finished." << std::endl;

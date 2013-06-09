@@ -156,7 +156,7 @@ main (int argc, char *argv[])
   std::cout << " ==== DARPA NMS CAMPUS NETWORK SIMULATION ====" << std::endl;
   LogComponentEnable ("OnOffApplication", LOG_LEVEL_ERROR);
 
-  int nCN = 4, nLANClients = 1;
+  int nCN = 2, nLANClients = 42;
   bool nix = true;
 
   CommandLine cmd;
@@ -470,7 +470,7 @@ main (int argc, char *argv[])
   Ptr<UniformRandomVariable> urng = CreateObject<UniformRandomVariable> ();
   int r1;
   double r2;
-  for (int z = 0; z < nCN - 2; ++z)
+  for (int z = 0; z < nCN; ++z)
     {
       int x = z + 1;
       if (z == nCN - 1) 

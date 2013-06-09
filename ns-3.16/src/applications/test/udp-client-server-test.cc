@@ -34,6 +34,15 @@
 #include "ns3/simple-channel.h"
 #include "ns3/test.h"
 #include "ns3/simulator.h"
+#include "ns3/onoff-application.h"
+
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/polymorphic_text_oarchive.hpp>
+
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/polymorphic_binary_oarchive.hpp>
+#include <boost/serialization/nvp.hpp>
 
 using namespace ns3;
 
@@ -282,7 +291,23 @@ UdpEchoClientSetFillTestCase::~UdpEchoClientSetFillTestCase ()
 
 void UdpEchoClientSetFillTestCase::DoRun (void)
 {
-  NodeContainer nodes;
+    std::ofstream os("test.txt");
+    boost::archive::polymorphic_binary_oarchive oa_implementation(os);
+    boost::archive::polymorphic_oarchive & opa = oa_implementation;
+
+
+	OnOffApplication app;
+	opa << BOOST_SERIALIZATION_NVP(app);
+	Application* app_p = new OnOffApplication();
+
+
+	ObjectFactory objectFactory;
+	objectFactory.SetTypeId (TypeId::LookupByName (app_p->GetInstanceTypeId().GetName()) );
+    opa.register_type(GetPointer (objectFactory.Create ()));
+
+    opa << BOOST_SERIALIZATION_NVP(app_p);
+	std::cout << "!!!" << std::endl;
+  /*NodeContainer nodes;
   nodes.Create (2);
 
   InternetStackHelper internet;
@@ -328,7 +353,7 @@ void UdpEchoClientSetFillTestCase::DoRun (void)
   clientApps.Stop (Seconds (10.0));
 
   Simulator::Run ();
-  Simulator::Destroy ();
+  Simulator::Destroy ();*/
 }
 
 class UdpClientServerTestSuite : public TestSuite

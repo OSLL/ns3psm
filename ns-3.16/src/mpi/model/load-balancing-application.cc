@@ -84,8 +84,7 @@ void LoadBalancingApplication::StartApplication () // Called at time specified b
 {
   NS_LOG_FUNCTION (this);
   Init ();
-  CancelEvents ();
-  ScheduleReclusteringEvent ();
+  m_reclusteringEvent = Simulator::Schedule (m_reclusteringInterval, &LoadBalancingApplication::StartReclustering, this);
 }
 
 void LoadBalancingApplication::StopApplication () // Called at time specified by Stop
@@ -99,19 +98,14 @@ void LoadBalancingApplication::CancelEvents ()
   NS_LOG_FUNCTION (this);
 }
 
-void LoadBalancingApplication::ScheduleReclusteringEvent ()
-{
-  NS_LOG_FUNCTION (this);
-  m_reclusteringEvent = Simulator::Schedule (m_reclusteringInterval, &LoadBalancingApplication::StartReclustering, this);
-}
-
 // Event handlers
 void LoadBalancingApplication::StartReclustering ()
 {
   NS_LOG_FUNCTION (this);
   std::cerr << "Reclustering iteration " << m_iterationNum ++ << " on cluster node "<< m_mpiProcessId << std::endl;
   Reclustering ();
-  ScheduleReclusteringEvent ();
+  m_reclusteringEvent = Simulator::Schedule (m_reclusteringInterval, &LoadBalancingApplication::StartReclustering, this);
+
 }
 
 

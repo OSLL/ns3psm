@@ -182,6 +182,11 @@ public:
    * \return the current simulation context
    */
   virtual uint32_t GetContext (void) const = 0;
+
+  virtual std::vector<uint32_t> GetLoads() {
+	  std::vector<uint32_t> v;
+	  return v;
+  }
 };
 
 } // namespace ns3
