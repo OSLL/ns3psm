@@ -127,6 +127,8 @@ private:
   Time            m_lastReclusteringTime;          // Last clustering time
   TypeId          m_tid;
 
+  MPI_Comm m_comm;
+
   // network graph
   graph_t m_networkGraph;
   // map: network node context -> graph vertex description

@@ -48,6 +48,34 @@
 #include "ns3/ipv4-list-routing-helper.h"
 #include "ns3/ipv4-nix-vector-helper.h"
 
+#include <boost/graph/graphviz.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include "ns3/node-container.h"
+
+
+// vertex_name - for reading from dot
+// vertex_color - load
+// vertex_distance - # cluster node
+typedef boost::property < boost::vertex_name_t, uint32_t, boost::property < boost::vertex_color_t, uint32_t, boost::property < boost::vertex_distance_t, uint32_t > > > vertex_p;
+// edge_weight - traffic
+// edge_weight2 - delay
+typedef boost::property < boost::edge_weight_t, uint32_t, boost::property < boost::edge_weight2_t, int64_t > > edge_p;
+
+typedef boost::adjacency_list <
+                    boost::vecS,
+                    boost::vecS,
+                    boost::undirectedS,
+                    vertex_p,
+                    edge_p
+> graph_t3; //graph type
+
+typedef boost:: graph_traits<  graph_t3 >::vertex_descriptor vertex_descriptor;
+typedef boost::graph_traits<  graph_t3 >::edge_descriptor edge_descriptor;
+typedef boost::graph_traits<  graph_t3 >::adjacency_iterator graph_adjacency_iterator;
+typedef boost::graph_traits<  graph_t3 >::vertex_iterator graph_vertex_iterator;
+typedef boost::graph_traits<  graph_t3 >::edge_iterator graph_edge_iterator;
+
+
 using namespace ns3;
 
 typedef struct timeval TIMER_TYPE;
@@ -126,9 +154,9 @@ main (int argc, char *argv[])
   TIMER_TYPE t0, t1, t2;
   TIMER_NOW (t0);
   std::cout << " ==== DARPA NMS CAMPUS NETWORK SIMULATION ====" << std::endl;
-  LogComponentEnable ("OnOffApplication", LOG_LEVEL_INFO);
+  LogComponentEnable ("OnOffApplication", LOG_LEVEL_ERROR);
 
-  int nCN = 2, nLANClients = 42;
+  int nCN = 4, nLANClients = 1;
   bool nix = true;
 
   CommandLine cmd;
@@ -442,7 +470,7 @@ main (int argc, char *argv[])
   Ptr<UniformRandomVariable> urng = CreateObject<UniformRandomVariable> ();
   int r1;
   double r2;
-  for (int z = 0; z < nCN; ++z) 
+  for (int z = 0; z < nCN - 2; ++z)
     {
       int x = z + 1;
       if (z == nCN - 1) 
@@ -526,6 +554,62 @@ main (int argc, char *argv[])
   Simulator::Stop (Seconds (100.0));
   Simulator::Run ();
   TIMER_NOW (t2);
+  std::vector<uint32_t> loads = Simulator::GetImplementation()->GetLoads();
+  graph_t3 m_networkGraph;
+   NodeContainer node_container = NodeContainer::GetGlobal();
+   std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
+
+    for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+      {
+        m_networkGraphVertexMap[(*it)->GetId()] = boost::add_vertex(m_networkGraph);
+        boost::put(boost::vertex_name, m_networkGraph, m_networkGraphVertexMap[(*it)->GetId()], (*it)->GetId());
+        boost::put(boost::vertex_color, m_networkGraph, m_networkGraphVertexMap[(*it)->GetId()], loads[(*it)->GetId()]);
+      }
+
+    for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+      {
+        for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+          {
+            Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
+            // only works for p2p links currently
+            if (!localNetDevice->IsPointToPoint ()) continue;
+            Ptr<Channel> channel = localNetDevice->GetChannel ();
+            if (channel == 0) continue;
+            // grab the adjacent node
+            Ptr<Node> remoteNode;
+            if (channel->GetDevice (1) == localNetDevice)
+              {
+                 remoteNode = (channel->GetDevice (0))->GetNode ();
+                 TimeValue delay;
+                 channel->GetAttribute ("Delay", delay);
+                 edge_descriptor e = boost::add_edge (m_networkGraphVertexMap[(*it)->GetId ()],
+                                  m_networkGraphVertexMap[remoteNode->GetId ()],
+                                  m_networkGraph).first;
+                boost::put(boost::edge_weight, m_networkGraph, e, delay.Get().GetMilliSeconds());
+               }
+          }
+      }
+
+    std::ofstream graphStream("graph.dot");
+
+    boost::dynamic_properties dp;
+
+    boost::property_map<graph_t3, boost::vertex_index_t>::type name =
+    boost::get(boost::vertex_index, m_networkGraph);
+    dp.property("node_id", name);
+
+    boost::property_map<graph_t3, boost::vertex_color_t>::type color =
+    boost::get(boost::vertex_color, m_networkGraph);
+    dp.property("label", color);
+
+    boost::property_map<graph_t3, boost::edge_weight_t>::type weight =
+    boost::get(boost::edge_weight, m_networkGraph);
+    dp.property("label", weight);
+
+    boost::write_graphviz_dp(graphStream, m_networkGraph, dp);
+
+
+
   std::cout << "Simulator finished." << std::endl;
   Simulator::Destroy ();
 

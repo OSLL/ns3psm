@@ -51,6 +51,7 @@ LoadBalancingApplication::LoadBalancingApplication ()
 
   MPI_Comm_size(MPI_COMM_WORLD, &m_mpiNumProcesses);
   MPI_Comm_rank(MPI_COMM_WORLD, &m_mpiProcessId);
+  MPI_Comm_dup(MPI_COMM_WORLD, &m_comm);
 }
 
 LoadBalancingApplication::~LoadBalancingApplication()
@@ -119,16 +120,15 @@ void LoadBalancingApplication::Reclustering ()
 {
 
   NS_LOG_FUNCTION (this);
-  UpdateNetworkGraph ();
-  MPI_Status stat;
-  MPI_Comm comm;
-  MPI_Comm_dup(MPI_COMM_WORLD, &comm);
 
+  UpdateNetworkGraph ();
+
+  MPI_Status stat;
 
     ParMETIS_V3_RefineKway(m_networkGraph.vtxdist, m_networkGraph.xadj, m_networkGraph.adjncy, m_networkGraph.vwgt,
   		  m_networkGraph.adjwgt, &m_networkGraph.wgtflag, &m_networkGraph.numflag, &m_networkGraph.ncon,
   		  &m_networkGraph.nparts, m_networkGraph.tpwgts, m_networkGraph.ubvec, m_networkGraph.options,
-          &m_networkGraph.edgecut, m_networkGraph.part, &comm);
+          &m_networkGraph.edgecut, m_networkGraph.part, &m_comm);
 
     MPI_Barrier (MPI_COMM_WORLD);
 
