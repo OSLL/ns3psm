@@ -71,11 +71,11 @@ typedef boost::adjacency_list <
                     edge_p
 > graph_nms_t; //graph type
 
-typedef boost:: graph_traits<  graph_t3 >::vertex_descriptor vertex_descriptor;
-typedef boost::graph_traits<  graph_t3 >::edge_descriptor edge_descriptor;
-typedef boost::graph_traits<  graph_t3 >::adjacency_iterator graph_adjacency_iterator;
-typedef boost::graph_traits<  graph_t3 >::vertex_iterator graph_vertex_iterator;
-typedef boost::graph_traits<  graph_t3 >::edge_iterator graph_edge_iterator;
+typedef boost:: graph_traits<  graph_nms_t >::vertex_descriptor vertex_descriptor;
+typedef boost::graph_traits<  graph_nms_t >::edge_descriptor edge_descriptor;
+typedef boost::graph_traits<  graph_nms_t >::adjacency_iterator graph_adjacency_iterator;
+typedef boost::graph_traits<  graph_nms_t >::vertex_iterator graph_vertex_iterator;
+typedef boost::graph_traits<  graph_nms_t >::edge_iterator graph_edge_iterator;
 
 #ifdef NS3_MPI
 #include <mpi.h>
