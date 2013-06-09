@@ -116,6 +116,7 @@ main (int argc, char *argv[])
   int32_t single = 0;
   int nBytes = 500000; // Bytes for each on/off app
   bool nix = true;
+  bool load = true;
 
   CommandLine cmd;
   //cmd.AddValue ("CN", "Number of total CNs [2]", nCN);
@@ -123,6 +124,7 @@ main (int argc, char *argv[])
   cmd.AddValue ("single", "1 if use single flow", single);
   cmd.AddValue ("nBytes", "Number of bytes for each on/off app", nBytes);
   cmd.AddValue ("nix", "Toggle the use of nix-vector or global routing", nix);
+  cmd.AddValue ("load", "load_balancing", load);
   cmd.Parse (argc,argv);
 
   if (nCN < 2)
@@ -160,7 +162,7 @@ main (int argc, char *argv[])
   boost::get(boost::vertex_distance, g);
   dp.property("label", color);
 
-  std::ifstream res_file("graph_input.dot");
+  std::ifstream res_file("graph_cl.dot");
   boost::read_graphviz(res_file, g, dp, "node_id");
 
   int node_num = 0;

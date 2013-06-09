@@ -99,7 +99,7 @@ DistributedSimulatorImpl::DistributedSimulatorImpl ()
   m_pLBTS = new LbtsMessage[m_systemCount];
   m_grantedTime = Seconds (0);
 
-  loadBalancingHelper.Install ();
+  //loadBalancingHelper.Install ();
 #else
   NS_FATAL_ERROR ("Can't use distributed simulator without MPI compiled in");
 #endif
@@ -297,7 +297,7 @@ DistributedSimulatorImpl::Next (void) const
 void
 DistributedSimulatorImpl::Run (void)
 {
-loadBalancingHelper.Start ();
+//loadBalancingHelper.Start ();
 
 #ifdef NS3_MPI
   CalculateLookAhead ();
