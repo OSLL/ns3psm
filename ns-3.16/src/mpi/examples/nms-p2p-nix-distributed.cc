@@ -150,6 +150,8 @@ main (int argc, char *argv[])
 
   graph_nms_t g;
 
+  boost::dynamic_properties dp;
+
   boost::property_map<graph_nms_t, boost::vertex_name_t>::type name =
   boost::get(boost::vertex_name, g);
   dp.property("node_id", name);
