@@ -182,7 +182,6 @@ void LoadBalancingApplication::Reclustering ()
 			MPI_Recv((void *)applications, applicationsNum, MPI_CHAR, (int)NodeList::GetNode (i)->GetSystemId(), i + 124, MPI_COMM_WORLD, &stat);
 
 			std::string applicationsString(applications);
-			std::cerr << "33 !" << applicationsString << "! " << m_mpiProcessId << std::endl;
 			std::vector <std::string> nodeApplications;
 			boost::algorithm::split(nodeApplications, applicationsString, boost::algorithm::is_any_of(" "));
 			nodeForMoving-> SetSystemId (m_networkGraph.part_all[i]);
@@ -190,7 +189,6 @@ void LoadBalancingApplication::Reclustering ()
 			for (uint32_t j = 0; j < nodeApplications.size (); ++j)
 			{
 				ObjectFactory objectFactory;
-				std::cerr << "44 !" << nodeApplications[j] << "! " << m_mpiProcessId << std::endl;
 				objectFactory.SetTypeId (TypeId::LookupByName (nodeApplications[j]) );
 				Ptr<Application> application = objectFactory.Create<Application> ();
 				application-> SetStartTime (Simulator::Now());

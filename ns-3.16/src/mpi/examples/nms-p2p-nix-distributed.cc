@@ -185,7 +185,6 @@ main (int argc, char *argv[])
           }
         for (int i = 0; i < 7; ++i)
           {
-
             for (uint32_t j = 0; j < nLANClients; ++j)
               {
                 clusters_net2LAN[z][i][j] =  boost::get(boost::vertex_distance, g, boost::get(boost::vertex_index, g, node_num++));
