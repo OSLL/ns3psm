@@ -125,7 +125,7 @@ HwmpProtocolMac::ReceiveAction (Ptr<Packet> packet, const WifiMacHeader & header
             }
           preq->DecrementTtl ();
           m_protocol->ReceivePreq (*preq, header.GetAddr2 (), m_ifIndex, header.GetAddr3 (),
-                                   m_parent->GetLinkMetric (header.GetAddr2 ()));
+                                   m_parent->GetLinkMetric (header.GetAddr2 (), preq->GetHopCount()));
         }
       if ((*i)->ElementId () == IE11S_PREP)
         {
@@ -138,7 +138,7 @@ HwmpProtocolMac::ReceiveAction (Ptr<Packet> packet, const WifiMacHeader & header
             }
           prep->DecrementTtl ();
           m_protocol->ReceivePrep (*prep, header.GetAddr2 (), m_ifIndex, header.GetAddr3 (),
-                                   m_parent->GetLinkMetric (header.GetAddr2 ()));
+                                   m_parent->GetLinkMetric (header.GetAddr2 (), prep->GetHopcount()));
         }
       if ((*i)->ElementId () == IE11S_PERR)
         {

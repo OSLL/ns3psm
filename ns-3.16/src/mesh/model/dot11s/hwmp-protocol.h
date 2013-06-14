@@ -23,6 +23,7 @@
 
 #include "ns3/mesh-l2-routing-protocol.h"
 #include "ns3/nstime.h"
+#include "ns3/energy-source.h"
 #include "ns3/event-id.h"
 #include "ns3/traced-value.h"
 #include <vector>

@@ -108,16 +108,6 @@ Node::GetSystemId (void) const
   return m_sid;
 }
 
-/**
- * \set the system id for parallel simulations associated
- *          to this node.
- */
-void
-Node::SetSystemId (uint32_t sid)
-{
-  m_sid = sid;
-}
-
 uint32_t
 Node::AddDevice (Ptr<NetDevice> device)
 {
@@ -165,11 +155,6 @@ Node::GetApplication (uint32_t index) const
   NS_ASSERT_MSG (index < m_applications.size (), "Application index " << index <<
                  " is out of range (only have " << m_applications.size () << " applications).");
   return m_applications[index];
-}
-std::vector<Ptr<Application> >
-Node::GetApplications () const
-{
-  return m_applications;
 }
 uint32_t 
 Node::GetNApplications (void) const
@@ -326,6 +311,7 @@ Node::ReceiveFromDevice (Ptr<NetDevice> device, Ptr<const Packet> packet, uint16
             }
         }
     }
+
   return found;
 }
 void 
