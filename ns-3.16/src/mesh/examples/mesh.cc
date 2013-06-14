@@ -52,6 +52,11 @@
 #include "ns3/mesh-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/mesh-helper.h"
+#include "ns3/simple-device-energy-model.h"
+#include "ns3/wifi-radio-energy-model.h"
+#include "ns3/li-ion-energy-source.h"
+#include "ns3/energy-source.h"
+#include "ns3/energy-source-container.h"
 
 #include <iostream>
 #include <sstream>
@@ -67,6 +72,7 @@ public:
   MeshTest ();
   /// Configure test from command line arguments
   void Configure (int argc, char ** argv);
+  bool RxPacket (Ptr<NetDevice> dev, Ptr<const Packet> pkt, uint16_t mode, const Address &sender);
   /// Run test
   int Run ();
 private:
@@ -140,6 +146,14 @@ MeshTest::Configure (int argc, char *argv[])
   NS_LOG_DEBUG ("Grid:" << m_xSize << "*" << m_ySize);
   NS_LOG_DEBUG ("Simulation time: " << m_totalTime << " s");
 }
+
+bool MeshTest::RxPacket (Ptr<NetDevice> dev, Ptr<const Packet> pkt, uint16_t mode, const Address &sender)
+{
+	Ptr<LiIonEnergySource> pp = dev->GetNode()->GetObject<LiIonEnergySource>();
+	pp->DecreaseRemainingEnergy(50);
+	return true;
+}
+
 void
 MeshTest::CreateNodes ()
 { 
@@ -179,7 +193,28 @@ MeshTest::CreateNodes ()
   // Set number of interfaces - default is single-interface mesh point
   mesh.SetNumberOfInterfaces (m_nIfaces);
   // Install protocols and return container if MeshPointDevices
+
+
+  for (NodeContainer::Iterator i = nodes.Begin (); i != nodes.End (); ++i)
+      {
+        Ptr<WifiRadioEnergyModel> sem = CreateObject<WifiRadioEnergyModel> ();
+        Ptr<LiIonEnergySource> es = CreateObject<LiIonEnergySource> ();
+        es->SetInitialEnergy (100);
+
+        es->SetNode (*i);
+        sem->SetEnergySource (es);
+        es->AppendDeviceEnergyModel (sem);
+        //sem->->setNode (*i);
+        (*i)->AggregateObject (es);
+      }
+
   meshDevices = mesh.Install (wifiPhy, nodes);
+
+  for (NetDeviceContainer::Iterator i = meshDevices.Begin (); i != meshDevices.End (); ++i){
+	  Ptr<NetDevice> dev = *i;
+	  dev->SetReceiveCallback (ns3::MakeCallback (&MeshTest::RxPacket, this));
+  }
+
   // Setup mobility - static grid topology
   MobilityHelper mobility;
   mobility.SetPositionAllocator ("ns3::GridPositionAllocator",
