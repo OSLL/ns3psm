@@ -165,6 +165,12 @@ main (int argc, char *argv[])
   std::ifstream res_file("graph_cl.dot");
   boost::read_graphviz(res_file, g, dp, "node_id");
 
+
+  std::ofstream graphStream3("graph_res.dot");
+  boost::write_graphviz_dp(graphStream3, g, dp);
+
+
+
   int node_num = 0;
 
   for (uint32_t z = 0; z < nCN; ++z)
