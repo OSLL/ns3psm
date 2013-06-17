@@ -700,6 +700,33 @@ main (int argc, char *argv[])
   std::cout << "Routing tables population took "
        << TIMER_DIFF (routingEnd, routingStart) << std::endl;
 
+  graph_nms_t m_networkGraph;
+
+  NodeContainer node_container = NodeContainer::GetGlobal();
+  std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
+
+  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+    {
+	 m_networkGraphVertexMap[(*it)->GetId()] = boost::add_vertex(m_networkGraph);
+	 boost::put(boost::vertex_name, m_networkGraph, m_networkGraphVertexMap[(*it)->GetId()], (*it)->GetId());
+	 boost::put(boost::vertex_distance, m_networkGraph, m_networkGraphVertexMap[(*it)->GetId()], (*it)->GetSystemId());
+    }
+
+
+  std::ofstream graphStream2("graph_ress.dot");
+
+  boost::dynamic_properties dp2;
+
+  boost::property_map<graph_nms_t, boost::vertex_index_t>::type name2 =
+  boost::get(boost::vertex_index, m_networkGraph);
+  dp.property("node_id", name2);
+
+  boost::property_map<graph_nms_t, boost::vertex_distance_t>::type color2 =
+  boost::get(boost::vertex_distance, m_networkGraph);
+  dp.property("label", color2);
+
+  boost::write_graphviz_dp(graphStream2, m_networkGraph, dp2);
+
   std::cout << "Running simulator..." << std::endl;
   TIMER_NOW (t1);
   Simulator::Stop (Seconds (100.0));
