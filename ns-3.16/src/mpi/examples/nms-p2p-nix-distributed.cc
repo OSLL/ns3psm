@@ -172,6 +172,7 @@ main (int argc, char *argv[])
         for (int i = 0; i < 3; ++i)
           {
             clusters_net0[z][i] = z;
+            node_num++;
           }
 
         for (int i = 0; i < 6; ++i)
