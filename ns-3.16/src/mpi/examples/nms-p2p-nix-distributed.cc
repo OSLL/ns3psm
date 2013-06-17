@@ -725,7 +725,7 @@ main (int argc, char *argv[])
   boost::get(boost::vertex_distance, m_networkGraph);
   dp2.property("label", color2);
 
-  boost::property_map<graph_t3, boost::edge_weight_t>::type weight2 =
+  boost::property_map<graph_nms_t, boost::edge_weight_t>::type weight2 =
   boost::get(boost::edge_weight, m_networkGraph);
   dp2.property("label", weight2);
 
