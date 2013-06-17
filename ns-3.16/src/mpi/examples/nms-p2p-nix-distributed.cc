@@ -712,6 +712,30 @@ main (int argc, char *argv[])
 	 boost::put(boost::vertex_distance, m_networkGraph, m_networkGraphVertexMap[(*it)->GetId()], (*it)->GetSystemId());
     }
 
+  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+    {
+      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+        {
+          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
+          // only works for p2p links currently
+          if (!localNetDevice->IsPointToPoint ()) continue;
+          Ptr<Channel> channel = localNetDevice->GetChannel ();
+          if (channel == 0) continue;
+          // grab the adjacent node
+          Ptr<Node> remoteNode;
+          if (channel->GetDevice (1) == localNetDevice)
+            {
+               remoteNode = (channel->GetDevice (0))->GetNode ();
+               TimeValue delay;
+               channel->GetAttribute ("Delay", delay);
+               edge_descriptor e = boost::add_edge (m_networkGraphVertexMap[(*it)->GetId ()],
+                                m_networkGraphVertexMap[remoteNode->GetId ()],
+                                m_networkGraph).first;
+              boost::put(boost::edge_weight, m_networkGraph, e, delay.Get().GetMilliSeconds());
+             }
+        }
+    }
+
 
   std::ofstream graphStream2("graph_ress.dot");
 
