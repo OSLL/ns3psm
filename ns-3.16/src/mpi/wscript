@@ -35,6 +35,7 @@ def build(bld):
     env.append_value('LIBPATH', '/usr/include/mpich2')
     env.append_value('LIB', 'boost_serialization')
     env.append_value('LIB', 'boost_graph_parallel')
+    env.append_value('LIB', 'boost_graph')
     env.append_value('LIB', 'boost_mpi')
     env.append_value('LIB', 'boost_system')
     env.append_value('LIB', 'parmetis')

@@ -490,7 +490,7 @@ main (int argc, char *argv[])
                   nodes_net2LAN[z][i][j].Get (0));
               sinkApp.Start (Seconds (0.0));
               // Sources
-              r1 = 2 + (int)(4 * urng->GetValue ());
+              r1 = 3;
               r2 = 10 * urng->GetValue ();
               OnOffHelper client ("ns3::TcpSocketFactory", Address ());
               AddressValue remoteAddress (InetSocketAddress (
@@ -514,7 +514,7 @@ main (int argc, char *argv[])
                   nodes_net3LAN[z][i][j].Get (0));
               sinkApp.Start (Seconds (0.0));
               // Sources
-              r1 = 2 + (int)(4 * urng->GetValue ());
+              r1 = 2;
               r2 = 10 * urng->GetValue ();
               OnOffHelper client ("ns3::TcpSocketFactory", Address ());
               AddressValue remoteAddress (InetSocketAddress (

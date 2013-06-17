@@ -171,7 +171,7 @@ main (int argc, char *argv[])
       {
         for (int i = 0; i < 3; ++i)
           {
-            clusters_net0[z][i] = boost::get(boost::vertex_distance, g, boost::get(boost::vertex_index, g, node_num++));
+            clusters_net0[z][i] = z;
           }
 
         for (int i = 0; i < 6; ++i)
