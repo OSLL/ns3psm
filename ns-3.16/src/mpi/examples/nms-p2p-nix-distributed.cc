@@ -719,11 +719,11 @@ main (int argc, char *argv[])
 
   boost::property_map<graph_nms_t, boost::vertex_index_t>::type name2 =
   boost::get(boost::vertex_index, m_networkGraph);
-  dp.property("node_id", name2);
+  dp2.property("node_id", name2);
 
   boost::property_map<graph_nms_t, boost::vertex_distance_t>::type color2 =
   boost::get(boost::vertex_distance, m_networkGraph);
-  dp.property("label", color2);
+  dp2.property("label", color2);
 
   boost::write_graphviz_dp(graphStream2, m_networkGraph, dp2);
 
