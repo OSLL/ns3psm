@@ -154,8 +154,8 @@ main (int argc, char *argv[])
 
   boost::dynamic_properties dp;
 
-  boost::property_map<graph_nms_t, boost::vertex_index_t>::type name =
-  boost::get(boost::vertex_index, g);
+  boost::property_map<graph_nms_t, boost::vertex_name_t>::type name =
+  boost::get(boost::vertex_name, g);
   dp.property("node_id", name);
 
   boost::property_map<graph_nms_t, boost::vertex_distance_t>::type color =
@@ -166,7 +166,19 @@ main (int argc, char *argv[])
   boost::read_graphviz(res_file, g, dp, "node_id");
 
   std::ofstream graphStream3("graph_res.dot");
-  boost::write_graphviz_dp(graphStream3, g, dp);
+
+  boost::dynamic_properties dp3;
+
+  boost::property_map<graph_nms_t, boost::vertex_index_t>::type name3 =
+  boost::get(boost::vertex_index, g);
+  dp3.property("node_id", name3);
+
+  boost::property_map<graph_nms_t, boost::vertex_distance_t>::type color3 =
+  boost::get(boost::vertex_distance, g);
+  dp3.property("label", color3);
+
+
+  boost::write_graphviz_dp(graphStream3, g, dp3);
 
   int node_num = 0;
 
