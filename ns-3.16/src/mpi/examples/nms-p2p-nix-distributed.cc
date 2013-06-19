@@ -180,47 +180,51 @@ main (int argc, char *argv[])
 
   boost::write_graphviz_dp(graphStream3, g, dp3);
 
+  graph_vertex_iterator st, en;
+  boost::tie(st, en) = vertices(g);
+  std::vector<vertex_descriptor> vertices(st, en);
+
   int node_num = 0;
 
   for (uint32_t z = 0; z < nCN; ++z)
       {
         for (int i = 0; i < 3; ++i)
           {
-            clusters_net0[z][i] = boost::get(boost::vertex_distance, g, boost::vertex(node_num++, g));
+            clusters_net0[z][i] = boost::get(boost::vertex_distance, g, vertices[node_num++]);
           }
 
         for (int i = 0; i < 6; ++i)
           {
-            clusters_net1[z][i] =  boost::get(boost::vertex_distance, g, boost::vertex(node_num++, g));
+            clusters_net1[z][i] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
           }
 
         for (int i = 0; i < 14; ++i)
           {
-            clusters_net2[z][i] =  boost::get(boost::vertex_distance, g, boost::vertex(node_num++, g));
+            clusters_net2[z][i] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
           }
         for (int i = 0; i < 7; ++i)
           {
             for (uint32_t j = 0; j < nLANClients; ++j)
               {
-                clusters_net2LAN[z][i][j] =  boost::get(boost::vertex_distance, g, boost::vertex(node_num++, g));
+                clusters_net2LAN[z][i][j] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
               }
           }
 
         for (int i = 0; i < 9; ++i)
           {
-            clusters_net3[z][i] =  boost::get(boost::vertex_distance, g, boost::vertex(node_num++, g));
+            clusters_net3[z][i] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
           }
 
         for (int i = 0; i < 5; ++i)
           {
             for (uint32_t j = 0; j < nLANClients; ++j)
               {
-                clusters_net3LAN[z][i][j] =  boost::get(boost::vertex_distance, g, boost::vertex(node_num++, g));
+                clusters_net3LAN[z][i][j] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
               }
           }
 
-        clusters_netLR[2 * z] =  boost::get(boost::vertex_distance, g, boost::vertex(node_num++, g));
-        clusters_netLR[2 * z + 1] =  boost::get(boost::vertex_distance, g, boost::vertex(node_num++, g));
+        clusters_netLR[2 * z] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
+        clusters_netLR[2 * z + 1] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
       }
 
 
