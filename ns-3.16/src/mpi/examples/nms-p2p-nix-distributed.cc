@@ -165,7 +165,7 @@ main (int argc, char *argv[])
   std::ifstream res_file("graph_cl.dot");
   boost::read_graphviz(res_file, g, dp, "node_id");
 
-  std::ofstream graphStream3("graph_res.dot");
+  std::ofstream graphStream3((std::string("graph_res.dot") + boost::lexical_cast<std::string>(systemId) + std::string(".dot")).c_str());
 
   boost::dynamic_properties dp3;
 
@@ -753,7 +753,7 @@ main (int argc, char *argv[])
     }
 
 
-  std::ofstream graphStream2("graph_ress.dot");
+  std::ofstream graphStream2((std::string("graph_ress.dot") + boost::lexical_cast<std::string>(systemId) + std::string(".dot")).c_str());
 
   boost::dynamic_properties dp2;
 
