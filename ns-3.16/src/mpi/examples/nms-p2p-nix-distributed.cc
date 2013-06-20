@@ -165,66 +165,47 @@ main (int argc, char *argv[])
   std::ifstream res_file("graph_cl.dot");
   boost::read_graphviz(res_file, g, dp, "node_id");
 
-  std::ofstream graphStream3((std::string("graph_res.dot") + boost::lexical_cast<std::string>(systemId) + std::string(".dot")).c_str());
-
-  boost::dynamic_properties dp3;
-
-  boost::property_map<graph_nms_t, boost::vertex_index_t>::type name3 =
-  boost::get(boost::vertex_index, g);
-  dp3.property("node_id", name3);
-
-  boost::property_map<graph_nms_t, boost::vertex_distance_t>::type color3 =
-  boost::get(boost::vertex_distance, g);
-  dp3.property("label", color3);
-
-
-  boost::write_graphviz_dp(graphStream3, g, dp3);
-
-  graph_vertex_iterator st, en;
-  boost::tie(st, en) = vertices(g);
-  std::vector<vertex_descriptor> vertices(st, en);
-
-  int node_num = 0;
+  //int node_num = 0;
 
   for (uint32_t z = 0; z < nCN; ++z)
       {
         for (int i = 0; i < 3; ++i)
           {
-            clusters_net0[z][i] = boost::get(boost::vertex_distance, g, vertices[node_num++]);
+            clusters_net0[z][i] = z;//boost::get(boost::vertex_distance, g, vertices[node_num++]);
           }
 
         for (int i = 0; i < 6; ++i)
           {
-            clusters_net1[z][i] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
+            clusters_net1[z][i] =  z;//boost::get(boost::vertex_distance, g, vertices[node_num++]);
           }
 
         for (int i = 0; i < 14; ++i)
           {
-            clusters_net2[z][i] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
+            clusters_net2[z][i] =  z;//boost::get(boost::vertex_distance, g, vertices[node_num++]);
           }
         for (int i = 0; i < 7; ++i)
           {
             for (uint32_t j = 0; j < nLANClients; ++j)
               {
-                clusters_net2LAN[z][i][j] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
+                clusters_net2LAN[z][i][j] =  z;//boost::get(boost::vertex_distance, g, vertices[node_num++]);
               }
           }
 
         for (int i = 0; i < 9; ++i)
           {
-            clusters_net3[z][i] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
+            clusters_net3[z][i] =  z;//boost::get(boost::vertex_distance, g, vertices[node_num++]);
           }
 
         for (int i = 0; i < 5; ++i)
           {
             for (uint32_t j = 0; j < nLANClients; ++j)
               {
-                clusters_net3LAN[z][i][j] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
+                clusters_net3LAN[z][i][j] =  z;//boost::get(boost::vertex_distance, g, vertices[node_num++]);
               }
           }
 
-        clusters_netLR[2 * z] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
-        clusters_netLR[2 * z + 1] =  boost::get(boost::vertex_distance, g, vertices[node_num++]);
+        clusters_netLR[2 * z] =  z;//boost::get(boost::vertex_distance, g, vertices[node_num++]);
+        clusters_netLR[2 * z + 1] =  z;//boost::get(boost::vertex_distance, g, vertices[node_num++]);
       }
 
 
@@ -756,7 +737,7 @@ main (int argc, char *argv[])
     }
 
 
-  std::ofstream graphStream2((std::string("graph_ress.dot") + boost::lexical_cast<std::string>(systemId) + std::string(".dot")).c_str());
+  std::ofstream graphStream2((std::string("graph_ress") + boost::lexical_cast<std::string>(systemId) + std::string(".dot")).c_str());
 
   boost::dynamic_properties dp2;
 
@@ -788,6 +769,62 @@ main (int argc, char *argv[])
   std::cout << "Simulator init time: " << d1 << std::endl;
   std::cout << "Simulator run time: " << d2 << std::endl;
   std::cout << "Total elapsed time: " << d1 + d2 << std::endl;
+
+
+  graph_nms_t m_networkGraph3;
+
+  NodeContainer node_container3 = NodeContainer::GetGlobal();
+  std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap3;
+
+  for (NodeContainer::Iterator it = node_container3.Begin(); it < node_container3.End(); ++it)
+    {
+	 m_networkGraphVertexMap3[(*it)->GetId()] = boost::add_vertex(m_networkGraph3);
+	 boost::put(boost::vertex_name, m_networkGraph3, m_networkGraphVertexMap3[(*it)->GetId()], (*it)->GetId());
+	 boost::put(boost::vertex_color, m_networkGraph3, m_networkGraphVertexMap3[(*it)->GetId()], (*it)->GetLoad());
+    }
+
+  for (NodeContainer::Iterator it = node_container3.Begin(); it < node_container3.End(); ++it)
+    {
+      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+        {
+          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
+          // only works for p2p links currently
+          if (!localNetDevice->IsPointToPoint ()) continue;
+          Ptr<Channel> channel = localNetDevice->GetChannel ();
+          if (channel == 0) continue;
+          // grab the adjacent node
+          Ptr<Node> remoteNode;
+          if (channel->GetDevice (1) == localNetDevice)
+            {
+               remoteNode = (channel->GetDevice (0))->GetNode ();
+               TimeValue delay;
+               channel->GetAttribute ("Delay", delay);
+               edge_descriptor e = boost::add_edge (m_networkGraphVertexMap3[(*it)->GetId ()],
+                                m_networkGraphVertexMap3[remoteNode->GetId ()],
+                                m_networkGraph3).first;
+              boost::put(boost::edge_weight, m_networkGraph3, e, delay.Get().GetMilliSeconds());
+             }
+        }
+    }
+
+  std::ofstream graphStream3((std::string("graph_res") + boost::lexical_cast<std::string>(systemId) + std::string(".dot")).c_str());
+
+  boost::dynamic_properties dp3;
+
+  boost::property_map<graph_nms_t, boost::vertex_index_t>::type name3 =
+  boost::get(boost::vertex_index, g);
+  dp3.property("node_id", name3);
+
+  boost::property_map<graph_nms_t, boost::vertex_color_t>::type color3 =
+  boost::get(boost::vertex_color, g);
+  dp3.property("label", color3);
+
+
+  boost::write_graphviz_dp(graphStream3, g, dp3);
+
+  graph_vertex_iterator st, en;
+  boost::tie(st, en) = vertices(g);
+  std::vector<vertex_descriptor> vertices(st, en);
 
   return 0;
 #else
