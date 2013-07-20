@@ -21,6 +21,7 @@
 #include "energy-source.h"
 #include "ns3/log.h"
 
+
 NS_LOG_COMPONENT_DEFINE ("EnergySource");
 
 namespace ns3 {
@@ -172,5 +173,16 @@ EnergySource::BreakDeviceEnergyModelRefCycle (void)
   m_models.Clear ();
   m_node = NULL;
 }
+
+void
+EnergySource::LogBatteryChargeOnChangeLog(double oldValue, double newValue) {
+  if (std::lower_bound(m_batteryChargeLevels.begin(), m_batteryChargeLevels.end(), oldValue) - m_batteryChargeLevels.begin()  !=
+     std::lower_bound(m_batteryChargeLevels.begin(), m_batteryChargeLevels.end(), newValue) - m_batteryChargeLevels.begin() ) {
+    std::cout << "Battery charge change level: from " << oldValue << " to " << newValue << std::endl;
+  }
+}
+
+double levels[] = { 8000.0, 10000.0, 12000.0, 14000.0, 18000.0, 20000.0, 22000.0 , 24000.0};
+std::vector<double> EnergySource::m_batteryChargeLevels(levels, levels + 8);
 
 } // namespace ns3

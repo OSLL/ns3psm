@@ -70,6 +70,7 @@ main (int argc, char **argv)
   Ptr<LiIonEnergySource> es = CreateObject<LiIonEnergySource> ();
   esCont->Add (es);
   es->SetNode (node);
+  es->TraceConnectWithoutContext ("RemainingEnergy", MakeCallback(&EnergySource::LogBatteryChargeOnChangeLog));
   sem->SetEnergySource (es);
   es->AppendDeviceEnergyModel (sem);
   sem->SetNode (node);
