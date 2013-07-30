@@ -72,6 +72,7 @@ Node::Node()
 {
   NS_LOG_FUNCTION (this);
   Construct ();
+  m_functionRorCallIfBatteryChargeLevel = MakeCallback(&Node::defaultFunctionRorCallIfBatteryChargeLevel, this);
 }
 
 Node::Node(uint32_t sid)

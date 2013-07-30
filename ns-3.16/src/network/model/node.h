@@ -237,6 +237,7 @@ private:
                                  const Address &from, const Address &to, NetDevice::PacketType packetType);
   bool ReceiveFromDevice (Ptr<NetDevice> device, Ptr<const Packet>, uint16_t protocol,
                           const Address &from, const Address &to, NetDevice::PacketType packetType, bool promisc);
+  void defaultFunctionRorCallIfBatteryChargeLevel(double, double, ns3::Ptr<ns3::Node>) {}
 
   void Construct (void);
 
