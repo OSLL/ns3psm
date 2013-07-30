@@ -140,9 +140,13 @@ public:
    *                   this value is only valid for promiscuous mode
    *                   protocol handlers.
    */
-  typedef Callback<void,Ptr<NetDevice>, Ptr<const Packet>,uint16_t,const Address &,
+  typedef Callback<void, Ptr<NetDevice>, Ptr<const Packet>,uint16_t,const Address &,
                    const Address &, NetDevice::PacketType> ProtocolHandler;
+
+  typedef Callback<void, double, double, ns3::Ptr<ns3::Node>, ns3::empty, ns3::empty, ns3::empty, ns3::empty, ns3::empty, ns3::empty> BatteryChargeLevelChangeHandler;
+
   /**
+   *
    * \param handler the handler to register
    * \param protocolType the type of protocol this handler is 
    *        interested in. This protocol type is a so-called
@@ -195,6 +199,29 @@ public:
   static bool ChecksumEnabled (void);
 
 
+  /**
+   * This function logs on battery charge level changes
+   */
+  void LogBatteryChargeOnChangeLog (double oldValue, double newValue);
+
+  std::vector<double>& getBatteryChargeLevels() {
+    return m_batteryChargeLevels;
+  }
+
+  void setBatteryChargeLevels(std::vector<double>& batteryChargeLevels) {
+    m_batteryChargeLevels = batteryChargeLevels;
+  }
+
+  BatteryChargeLevelChangeHandler getFunctionRorCallIfBatteryChargeLevel() const {
+		return m_functionRorCallIfBatteryChargeLevel;
+	}
+
+	void setFunctionRorCallIfBatteryChargeLevel(
+			BatteryChargeLevelChangeHandler functionRorCallIfBatteryChargeLevel) {
+		m_functionRorCallIfBatteryChargeLevel =
+				functionRorCallIfBatteryChargeLevel;
+	}
+
 protected:
   /**
    * The dispose method. Subclasses must override this method
@@ -228,6 +255,10 @@ private:
   std::vector<Ptr<Application> > m_applications;
   ProtocolHandlerList m_handlers;
   DeviceAdditionListenerList m_deviceAdditionListeners;
+
+  std::vector<double> m_batteryChargeLevels;
+  BatteryChargeLevelChangeHandler m_functionRorCallIfBatteryChargeLevel;
+
 };
 
 } // namespace ns3

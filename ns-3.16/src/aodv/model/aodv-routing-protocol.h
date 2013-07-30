@@ -34,6 +34,7 @@
 #include "aodv-neighbor.h"
 #include "aodv-dpd.h"
 #include "ns3/node.h"
+#include "ns3/ptr.h"
 #include "ns3/random-variable-stream.h"
 #include "ns3/output-stream-wrapper.h"
 #include "ns3/ipv4-routing-protocol.h"
@@ -89,6 +90,7 @@ public:
   bool GetHelloEnable () const { return EnableHello; }
   void SetBroadcastEnable (bool f) { EnableBroadcast = f; }
   bool GetBroadcastEnable () const { return EnableBroadcast; }
+  void LogBatteryChargeOnChangeLog(double oldValue, double newValue, Ptr<Node> node);
   //\}
 
  /**
@@ -268,7 +270,8 @@ private:
   void AckTimerExpire (Ipv4Address neighbor,  Time blacklistTimeout);
 
   /// Provides uniform random variables.
-  Ptr<UniformRandomVariable> m_uniformRandomVariable;  
+  Ptr<UniformRandomVariable> m_uniformRandomVariable;
+
 };
 
 }

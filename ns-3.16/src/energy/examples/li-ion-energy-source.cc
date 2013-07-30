@@ -57,6 +57,7 @@ PrintCellInfo (Ptr<LiIonEnergySource> es)
     }
 }
 
+
 int
 main (int argc, char **argv)
 {
@@ -70,11 +71,19 @@ main (int argc, char **argv)
   Ptr<LiIonEnergySource> es = CreateObject<LiIonEnergySource> ();
   esCont->Add (es);
   es->SetNode (node);
-  es->TraceConnectWithoutContext ("RemainingEnergy", MakeCallback(&EnergySource::LogBatteryChargeOnChangeLog));
+
+
+  double levelsArray[] = { 8000.0, 10000.0, 12000.0, 14000.0, 18000.0, 20000.0, 22000.0 , 24000.0};
+  std::vector<double> levelsVector(levelsArray, levelsArray + 8);
+  node->setBatteryChargeLevels(levelsVector);
+
+  es->TraceConnectWithoutContext ("RemainingEnergy", MakeCallback(&Node::LogBatteryChargeOnChangeLog, node));
+
   sem->SetEnergySource (es);
   es->AppendDeviceEnergyModel (sem);
   sem->SetNode (node);
   node->AggregateObject (esCont);
+
 
   Time now = Simulator::Now ();
 
@@ -88,6 +97,7 @@ main (int argc, char **argv)
                        &SimpleDeviceEnergyModel::SetCurrentA,
                        sem,
                        4.66);
+
   now += Seconds (600);
 
   PrintCellInfo (es);

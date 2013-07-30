@@ -28,6 +28,9 @@
 #include "ns3/point-to-point-module.h"
 #include "ns3/wifi-module.h" 
 #include "ns3/v4ping-helper.h"
+#include "ns3/simple-device-energy-model.h"
+#include "ns3/li-ion-energy-source.h"
+#include "ns3/energy-source-container.h"
 #include <iostream>
 #include <cmath>
 
@@ -97,7 +100,7 @@ int main (int argc, char **argv)
 AodvExample::AodvExample () :
   size (10),
   step (100),
-  totalTime (10),
+  totalTime (300),
   pcap (true),
   printRoutes (true)
 {
@@ -154,6 +157,34 @@ AodvExample::CreateNodes ()
       std::ostringstream os;
       os << "node-" << i;
       Names::Add (os.str (), nodes.Get (i));
+
+      Ptr<SimpleDeviceEnergyModel> sem = CreateObject<SimpleDeviceEnergyModel> ();
+      Ptr<EnergySourceContainer> esCont = CreateObject<EnergySourceContainer> ();
+      Ptr<LiIonEnergySource> es = CreateObject<LiIonEnergySource> ();
+      esCont->Add (es);
+      es->SetNode (nodes.Get (i));
+
+
+      double levelsArray[] = { 27000.0, 28000.0, 29000.0, 30000.0};
+      std::vector<double> levelsVector(levelsArray, levelsArray + 4);
+      nodes.Get (i)->setBatteryChargeLevels(levelsVector);
+
+      es->TraceConnectWithoutContext ("RemainingEnergy", MakeCallback(&Node::LogBatteryChargeOnChangeLog, nodes.Get (i)));
+
+      sem->SetEnergySource (es);
+      es->AppendDeviceEnergyModel (sem);
+      sem->SetNode (nodes.Get (i));
+      nodes.Get (i)->AggregateObject (esCont);
+
+
+      Time now = Simulator::Now ();
+
+      sem->SetCurrentA (2.33);
+
+
+      // discharge at 4.66 A for 628 seconds
+      Simulator::Schedule (now, &SimpleDeviceEnergyModel::SetCurrentA, sem, 4.66);
+
     }
   // Create static grid
   MobilityHelper mobility;

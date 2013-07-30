@@ -159,22 +159,6 @@ public:
    */
   void DisposeDeviceModels (void);
 
-  /**
-   * This function logs on battery charge level changes
-   */
-  static void LogBatteryChargeOnChangeLog (double oldValue, double newValue);
-
-  static std::vector<double>& getBatteryChargeLevels() {
-    return m_batteryChargeLevels;
-  }
-
-  static void setBatteryChargeLevels(std::vector<double>& batteryChargeLevels) {
-    m_batteryChargeLevels = batteryChargeLevels;
-  }
-
-  static std::vector<double> m_batteryChargeLevels;
-
-
 private:
   /**
    * All child's implementation must call BreakDeviceEnergyModelRefCycle to

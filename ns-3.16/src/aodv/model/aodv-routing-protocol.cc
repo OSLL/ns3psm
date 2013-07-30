@@ -39,6 +39,7 @@
 #include "ns3/adhoc-wifi-mac.h"
 #include "ns3/string.h"
 #include "ns3/pointer.h"
+#include "ns3/node-container.h"
 #include <algorithm>
 #include <limits>
 
@@ -153,6 +154,7 @@ RoutingProtocol::RoutingProtocol () :
     {
       m_nb.SetCallback (MakeCallback (&RoutingProtocol::SendRerrWhenBreaksLinkToNextHop, this));
     }
+
 }
 
 TypeId
@@ -313,6 +315,13 @@ void
 RoutingProtocol::Start ()
 {
   NS_LOG_FUNCTION (this);
+
+  NodeContainer nodeContainer = NodeContainer::GetGlobal ();
+   for (NodeContainer::Iterator iter = nodeContainer.Begin (); iter != nodeContainer.End (); ++iter)
+	 {
+	   (*iter)->setFunctionRorCallIfBatteryChargeLevel(MakeCallback(&ns3::aodv::RoutingProtocol::LogBatteryChargeOnChangeLog, this));
+	 }
+
   if (EnableHello)
     {
       m_nb.ScheduleTimer ();
@@ -1810,6 +1819,12 @@ RoutingProtocol::FindSocketWithInterfaceAddress (Ipv4InterfaceAddress addr ) con
   Ptr<Socket> socket;
   return socket;
 }
+
+void
+RoutingProtocol::LogBatteryChargeOnChangeLog(double oldValue, double newValue, Ptr<Node> node) {
+	std::cout << "Battery charge change level on node " << node->GetId() << ": from " << oldValue << " to " << newValue << std::endl;
+}
+
 
 }
 }
