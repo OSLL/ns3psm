@@ -152,11 +152,5 @@ PointToPointChannel::IsInitialized (void) const
   return true;
 }
 
-uint32_t
-PointToPointChannel::GetTraffic (void) const
-{
-  return m_traffic;
-}
-
 } // namespace ns3
 

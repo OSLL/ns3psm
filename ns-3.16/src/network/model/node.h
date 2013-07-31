@@ -73,11 +73,6 @@ public:
    */
   uint32_t GetId (void) const;
 
-  uint32_t GetLoad (void) const;
-
-  void IncLoad (void);
-  void RemoveLoad (void);
-
   /**
    * \returns the system id for parallel simulations associated
    *          to this node.
@@ -234,8 +229,6 @@ private:
   };
   typedef std::vector<struct Node::ProtocolHandlerEntry> ProtocolHandlerList;
   typedef std::vector<DeviceAdditionListener> DeviceAdditionListenerList;
-
-  uint32_t    m_load;
 
   uint32_t    m_id;         // Node id for this node
   uint32_t    m_sid;        // System id for this node

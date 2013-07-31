@@ -37,13 +37,9 @@ class PointToPointRemoteChannel : public PointToPointChannel
 
 public:
   static TypeId GetTypeId (void);
-  virtual uint32_t GetTraffic (void) const;
   PointToPointRemoteChannel ();
   ~PointToPointRemoteChannel ();
   virtual bool TransmitStart (Ptr<Packet> p, Ptr<PointToPointNetDevice> src, Time txTime);
-
-private:
-  uint32_t      m_traffic;
 };
 
 }

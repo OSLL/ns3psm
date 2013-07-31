@@ -102,25 +102,6 @@ Node::GetId (void) const
 }
 
 uint32_t
-Node::GetLoad (void) const
-{
-	return m_load;
-}
-
-void
-Node::IncLoad (void)
-{
-	m_load++;
-}
-
-void
-Node::RemoveLoad (void)
-{
-	m_load = 0;
-}
-
-
-uint32_t
 Node::GetSystemId (void) const
 {
   NS_LOG_FUNCTION (this);

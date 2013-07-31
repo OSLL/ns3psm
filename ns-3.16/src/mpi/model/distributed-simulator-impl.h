@@ -19,7 +19,7 @@
 #ifndef DISTRIBUTED_SIMULATOR_IMPL_H
 #define DISTRIBUTED_SIMULATOR_IMPL_H
 
-#include "load-balancing-helper.h"
+#include "load-balancing-application.h"
 #include "ns3/simulator-impl.h"
 #include "ns3/scheduler.h"
 #include "ns3/event-impl.h"
@@ -143,8 +143,7 @@ private:
   Time         m_grantedTime; // Last LBTS
   static Time  m_lookAhead;   // Lookahead value
 
-  LoadBalancingHelper loadBalancingHelper;
-
+  LoadBalancingApplication* m_loadBalancingApplication;
 };
 
 } // namespace ns3

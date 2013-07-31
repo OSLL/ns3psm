@@ -46,7 +46,6 @@ def build(bld):
     sim.source = [
         'model/distributed-simulator-impl.cc',
         'model/load-balancing-application.cc',
-        'model/load-balancing-helper.cc',
         'model/mpi-interface.cc',
         'model/mpi-receiver.cc',
         ]
@@ -56,7 +55,6 @@ def build(bld):
     headers.source = [
         'model/distributed-simulator-impl.h',
         'model/load-balancing-application.h',
-        'model/load-balancing-helper.h',
         'model/mpi-interface.h',
         'model/mpi-receiver.h',
         'model/argument_parser.hpp',

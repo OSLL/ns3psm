@@ -70,13 +70,6 @@ public:
    */
   virtual Ptr<NetDevice> GetDevice (uint32_t i) const = 0;
 
-  /**
-   * \returns traffic size sended by this channel.
-   *
-   * This method must be implemented by subclasses, return 0 by default.
-   */
-  virtual uint32_t GetTraffic (void) const;
-
 private:
   uint32_t m_id; // Channel id for this channel
 };

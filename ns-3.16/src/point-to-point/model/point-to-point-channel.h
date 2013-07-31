@@ -92,12 +92,6 @@ public:
    */
   virtual Ptr<NetDevice> GetDevice (uint32_t i) const;
 
-  /*
-   * \brief Get traffic size sended by this channel
-   * \returns traffic size
-   */
-  virtual uint32_t GetTraffic (void) const;
-
 protected:
 
   /*

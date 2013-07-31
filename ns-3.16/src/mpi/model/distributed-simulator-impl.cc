@@ -99,7 +99,9 @@ DistributedSimulatorImpl::DistributedSimulatorImpl ()
   m_pLBTS = new LbtsMessage[m_systemCount];
   m_grantedTime = Seconds (0);
 
-  //loadBalancingHelper.Install ();
+  // Setup load balancing application
+  m_loadBalancingApplication = new LoadBalancingApplication();
+  m_loadBalancingApplication->SetState(STATIC);
 #else
   NS_FATAL_ERROR ("Can't use distributed simulator without MPI compiled in");
 #endif
@@ -258,19 +260,11 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
 
   if ((m_currentContext > 0) && (m_currentContext < NodeContainer::GetGlobal ().GetN ()))
   {
-	  Ptr<Node> currentContextNode = NodeList::GetNode (m_currentContext);
-	  currentContextNode->IncLoad();
-	  uint32_t currentContextSysId = currentContextNode->GetSystemId ();
-	  if (currentContextSysId == MpiInterface::GetSystemId())
-	  {
-	    next.impl->Invoke ();
-	    next.impl->Unref ();
-	  }
-  } else {
-    next.impl->Invoke ();
-    next.impl->Unref ();
-    //currentContextNode->IncLoad();
+      m_loadBalancingApplication->m_networkGraph.gvwgt[m_currentContext]++;
   }
+
+  next.impl->Invoke ();
+  next.impl->Unref ();
 
 }
 
@@ -297,7 +291,8 @@ DistributedSimulatorImpl::Next (void) const
 void
 DistributedSimulatorImpl::Run (void)
 {
-//loadBalancingHelper.Start ();
+m_loadBalancingApplication->SetStartTime (Seconds (0));
+m_loadBalancingApplication->Start ();
 
 #ifdef NS3_MPI
   CalculateLookAhead ();

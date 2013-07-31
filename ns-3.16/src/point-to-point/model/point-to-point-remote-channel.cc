@@ -72,14 +72,7 @@ PointToPointRemoteChannel::TransmitStart (
 #else
   NS_FATAL_ERROR ("Can't use distributed simulator without MPI compiled in");
 #endif
-  m_traffic += p->GetSize ();
   return true;
-}
-
-uint32_t
-PointToPointRemoteChannel::GetTraffic (void) const
-{
-  return m_traffic;
 }
 
 } // namespace ns3

@@ -84,7 +84,11 @@ void LoadBalancingApplication::StartApplication () // Called at time specified b
 {
   NS_LOG_FUNCTION (this);
   Init ();
-  m_reclusteringEvent = Simulator::Schedule (m_reclusteringInterval, &LoadBalancingApplication::StartReclustering, this);
+  if (m_state == DYNAMIC) {
+	  m_reclusteringEvent = Simulator::Schedule (m_reclusteringInterval, &LoadBalancingApplication::StartReclustering, this);
+  } else {
+	  Simulator::ScheduleDestroy(&LoadBalancingApplication::ComputeNetworkGraphPartition, this);
+  }
 }
 
 void LoadBalancingApplication::StopApplication () // Called at time specified by Stop
@@ -158,12 +162,10 @@ void LoadBalancingApplication::Reclustering ()
 			applications.append(" ");
 			nodeApplications[j]-> SetStopTime(Simulator::Now());
 		}
-		std::cerr << "22 !" << applications << "! " << m_mpiProcessId << std::endl;
 
 		unsigned int  app_size = applications.size();
 		MPI_Send((void *)(&app_size), 1, MPI_UNSIGNED, m_networkGraph.part_all[i], i + 123, MPI_COMM_WORLD);
 		if (app_size > 0) MPI_Send((void *)applications.c_str(), applications.size(), MPI_CHAR, m_networkGraph.part_all[i], i + 124, MPI_COMM_WORLD);
-
   	  }
     }
 
@@ -201,23 +203,37 @@ void LoadBalancingApplication::Reclustering ()
     std::cerr << "55 " << m_mpiProcessId << std::endl;
 }
 
+
+/**
+ * Creating graph in csr format for partition
+ */
 void
 LoadBalancingApplication::CreateNetworkGraph (void)
 {
-
   NodeContainer node_container =  NodeContainer::GetGlobal ();
+
+  // set global num of vertex
   m_networkGraph.gnvtxs = node_container.GetN ();
 
+  // init array for physical vertex distribution (for partition computing)
   m_networkGraph.vtxdist = new parmetis_idx_t [m_mpiNumProcesses + 1];
+
+  // fill array for physical vertex distribution (for partition computing)
+  // each physical process get the same num of vertex
   m_networkGraph.vtxdist[0] = 0;
   for (int i = 0, k = m_networkGraph.gnvtxs; i < m_mpiNumProcesses; i++) {
     int l = k / (m_mpiNumProcesses - i);
     m_networkGraph.vtxdist[i + 1] = m_networkGraph.vtxdist[i] + l;
     k -= l;
   }
+
+  // local num of vertex for physical vertex distribution (for partition computing)
   m_networkGraph.nvtxs = m_networkGraph.vtxdist[m_mpiProcessId + 1] - m_networkGraph.vtxdist[m_mpiProcessId];
+
+  // fill graph structure arrays
   m_networkGraph.xadj = new parmetis_idx_t [m_networkGraph.nvtxs + 1];
   m_networkGraph.vwgt = new parmetis_idx_t [m_networkGraph.nvtxs];
+  m_networkGraph.gvwgt = new parmetis_idx_t [m_networkGraph.gnvtxs];
   m_networkGraph.part = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.nvtxs);
   m_networkGraph.part_all = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.gnvtxs);
   parmetis_idx_t index = 0;
@@ -291,21 +307,19 @@ LoadBalancingApplication::UpdateNetworkGraph ()
   MPI_Status stat;
   int *loads = (int *)malloc(sizeof(int) * m_networkGraph.gnvtxs);
 
-  NodeContainer node_container =  NodeContainer::GetGlobal();
-
-  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
-    {
-       loads[(*it)->GetId()] = (*it)->GetLoad();
-      (*it)->RemoveLoad();
-    }
   for (int i = 0; i < m_mpiNumProcesses; i++){
     if (i != m_mpiProcessId) {
-    	MPI_Send((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 123, MPI_COMM_WORLD);
+    	MPI_Send((void *)m_networkGraph.gvwgt, m_networkGraph.gnvtxs, MPI_INT, i, 123, MPI_COMM_WORLD);
     }
   }
   for (int i = 0; i < m_networkGraph.nvtxs; i++) {
 	  m_networkGraph.vwgt[i] = 0;
   }
+
+  for (int i = 0; i < m_networkGraph.gnvtxs; i++) {
+	  m_networkGraph.gvwgt[i] = 0;
+  }
+
   for (int i = 0; i < m_mpiNumProcesses; i++) {
     if (i != m_mpiProcessId) {
       MPI_Recv((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 123, MPI_COMM_WORLD, &stat);
@@ -321,7 +335,8 @@ LoadBalancingApplication::UpdateNetworkGraph ()
 void
 LoadBalancingApplication::WriteClusterGraph (const std::string& filename)
 {
-	graph_t2 g;
+	boost_graph_t g;
+
 	std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
 	NodeContainer node_container =  NodeContainer::GetGlobal();
 	  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
@@ -356,17 +371,48 @@ LoadBalancingApplication::WriteClusterGraph (const std::string& filename)
 
   boost::dynamic_properties dp;
 
-  boost::property_map<graph_t2, boost::vertex_index_t>::type name =
+  boost::property_map<boost_graph_t, boost::vertex_index_t>::type name =
   boost::get(boost::vertex_index, g);
   dp.property("node_id", name);
 
-  boost::property_map<graph_t2, boost::vertex_color_t>::type color =
+  boost::property_map<boost_graph_t, boost::vertex_color_t>::type color =
   boost::get(boost::vertex_color, g);
   dp.property("label", color);
 
 
   boost::write_graphviz_dp(graphStream, g, dp);
 
+}
+
+void
+LoadBalancingApplication::ComputeNetworkGraphPartition(void) {
+  Reclustering ();
+
+  boost_graph_t networkGraph;
+
+  NodeContainer node_container = NodeContainer::GetGlobal();
+  std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
+
+  for (int i = 0; i < m_networkGraph.gnvtxs; i++)
+    {
+      m_networkGraphVertexMap[i] = boost::add_vertex(networkGraph);
+      boost::put(boost::vertex_name, networkGraph, m_networkGraphVertexMap[i], i);
+      boost::put(boost::vertex_distance, networkGraph, m_networkGraphVertexMap[i], m_networkGraph.part_all[i]);
+    }
+
+  std::ofstream graphStream((std::string("graph_ress") + boost::lexical_cast<std::string>(m_mpiProcessId) + std::string(".dot")).c_str());
+
+  boost::dynamic_properties dp;
+
+  boost::property_map<boost_graph_t, boost::vertex_index_t>::type name =
+  boost::get(boost::vertex_index, networkGraph);
+  dp.property("node_id", name);
+
+  boost::property_map<boost_graph_t, boost::vertex_distance_t>::type color =
+  boost::get(boost::vertex_distance, networkGraph);
+  dp.property("label", color);
+
+  boost::write_graphviz_dp(graphStream, networkGraph, dp);
 }
 
 } /* namespace ns3 */
