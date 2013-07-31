@@ -148,6 +148,7 @@ void LoadBalancingApplication::Reclustering ()
       }
     }
 
+    if (m_state == DYNAMIC) {
 
     for (int i = 0; i < m_networkGraph.gnvtxs; ++i) {
 
@@ -199,6 +200,7 @@ void LoadBalancingApplication::Reclustering ()
 			}
   		}
   	  }
+    }
     }
     std::cerr << "55 " << m_mpiProcessId << std::endl;
 }
