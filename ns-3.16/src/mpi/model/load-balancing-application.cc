@@ -212,6 +212,9 @@ void LoadBalancingApplication::Reclustering ()
 void
 LoadBalancingApplication::CreateNetworkGraph (void)
 {
+
+  std::cerr << "CreateNetworkGraph" << std::endl;
+
   NodeContainer node_container =  NodeContainer::GetGlobal ();
 
   // set global num of vertex
