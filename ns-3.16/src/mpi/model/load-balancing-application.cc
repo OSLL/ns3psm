@@ -388,33 +388,10 @@ LoadBalancingApplication::WriteClusterGraph (const std::string& filename)
 
 void
 LoadBalancingApplication::ComputeNetworkGraphPartition(void) {
+
   Reclustering ();
 
-  boost_graph_t networkGraph;
-
-  NodeContainer node_container = NodeContainer::GetGlobal();
-  std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
-
-  for (int i = 0; i < m_networkGraph.gnvtxs; i++)
-    {
-      m_networkGraphVertexMap[i] = boost::add_vertex(networkGraph);
-      boost::put(boost::vertex_name, networkGraph, m_networkGraphVertexMap[i], i);
-      boost::put(boost::vertex_distance, networkGraph, m_networkGraphVertexMap[i], m_networkGraph.part_all[i]);
-    }
-
-  std::ofstream graphStream((std::string("graph_ress") + boost::lexical_cast<std::string>(m_mpiProcessId) + std::string(".dot")).c_str());
-
-  boost::dynamic_properties dp;
-
-  boost::property_map<boost_graph_t, boost::vertex_index_t>::type name =
-  boost::get(boost::vertex_index, networkGraph);
-  dp.property("node_id", name);
-
-  boost::property_map<boost_graph_t, boost::vertex_distance_t>::type color =
-  boost::get(boost::vertex_distance, networkGraph);
-  dp.property("label", color);
-
-  boost::write_graphviz_dp(graphStream, networkGraph, dp);
+  WriteClusterGraph("graph_test_");
 }
 
 } /* namespace ns3 */
