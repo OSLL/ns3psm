@@ -80,6 +80,18 @@ public:
   uint32_t GetSystemId (void) const;
 
   /**
+  * Added by olya - start
+  */
+  /**
+   * \set the system id for parallel simulations associated
+   *          to this node.
+   */
+  void SetSystemId (uint32_t sid);
+/**
+* Added by olya - end
+*/
+
+  /**
    * \param device NetDevice to associate to this node.
    * \returns the index of the NetDevice into the Node's list of
    *          NetDevice.
@@ -120,6 +132,17 @@ public:
    * \returns the number of applications associated to this Node.
    */
   uint32_t GetNApplications (void) const;
+
+  /**
+  * Added by olya - start
+  */
+  /**
+   * \returns vector of applications associated to this Node.
+   */
+  std::vector<Ptr<Application> > GetApplications () const;
+  /**
+  * Added by olya - end
+  */
 
   /**
    * A protocol handler

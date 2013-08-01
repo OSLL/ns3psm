@@ -32,6 +32,16 @@ def configure(conf):
 
 def build(bld):
     env = bld.env
+    # added by olya - start
+    env.append_value('LIBPATH', '/usr/include/mpich2')
+    env.append_value('LIB', 'boost_serialization')
+    env.append_value('LIB', 'boost_graph_parallel')
+    env.append_value('LIB', 'boost_graph')
+    env.append_value('LIB', 'boost_mpi')
+    env.append_value('LIB', 'boost_system')
+    env.append_value('LIB', 'parmetis')
+    env.append_value('LIB', 'metis')
+    # added by olya - end
     sim = bld.create_ns3_module('mpi', ['core', 'network'])
     sim.source = [
         'model/distributed-simulator-impl.cc',

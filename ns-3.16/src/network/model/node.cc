@@ -108,6 +108,23 @@ Node::GetSystemId (void) const
   return m_sid;
 }
 
+/**
+* Added by olya - start
+*/
+/**
+ * \set the system id for parallel simulations associated
+ *          to this node.
+ */
+void
+Node::SetSystemId (uint32_t sid)
+{
+  NS_LOG_FUNCTION (this);
+  m_sid = sid;
+}
+/**
+* Added by olya - end
+*/
+
 uint32_t
 Node::AddDevice (Ptr<NetDevice> device)
 {
@@ -162,6 +179,18 @@ Node::GetNApplications (void) const
   NS_LOG_FUNCTION (this);
   return m_applications.size ();
 }
+
+/**
+* Added by olya - start
+*/
+std::vector<Ptr<Application> >
+Node::GetApplications () const
+{
+  return m_applications;
+}
+/**
+* Added by olya - end
+*/
 
 void 
 Node::DoDispose ()
