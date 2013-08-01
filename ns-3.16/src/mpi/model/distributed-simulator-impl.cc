@@ -258,8 +258,9 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
   m_currentContext = next.key.m_context;
   m_currentUid = next.key.m_uid;
 
-  if ((m_currentContext > 0) && (m_currentContext < NodeContainer::GetGlobal ().GetN ()))
+  if ((m_currentContext >= 0) && (m_currentContext < NodeContainer::GetGlobal ().GetN ()))
   {
+	  std::cerr << "*";
       m_loadBalancingApplication->m_networkGraph.gvwgt[m_currentContext]++;
       std::cerr << ".";
   }
