@@ -53,8 +53,7 @@ PointToPointChannel::PointToPointChannel()
   :
     Channel (),
     m_delay (Seconds (0.)),
-    m_nDevices (0),
-    m_traffic (0)
+    m_nDevices (0)
 {
   NS_LOG_FUNCTION_NOARGS ();
 }
@@ -100,7 +99,6 @@ PointToPointChannel::TransmitStart (
 
   // Call the tx anim callback on the net device
   m_txrxPointToPoint (p, src, m_link[wire].m_dst, txTime, txTime + m_delay);
-  m_traffic += p->GetSize ();
   return true;
 }
 

@@ -99,9 +99,6 @@ DistributedSimulatorImpl::DistributedSimulatorImpl ()
   m_pLBTS = new LbtsMessage[m_systemCount];
   m_grantedTime = Seconds (0);
 
-  // Setup load balancing application
-  m_loadBalancingApplication = new LoadBalancingApplication();
-  m_loadBalancingApplication->SetState(STATIC);
 #else
   NS_FATAL_ERROR ("Can't use distributed simulator without MPI compiled in");
 #endif
@@ -260,9 +257,7 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
 
   if ((m_currentContext >= 0) && (m_currentContext < NodeContainer::GetGlobal ().GetN ()))
   {
-	  std::cerr << "*";
       m_loadBalancingApplication->m_networkGraph.gvwgt[m_currentContext]++;
-      std::cerr << ".";
   }
 
   next.impl->Invoke ();
@@ -293,6 +288,9 @@ DistributedSimulatorImpl::Next (void) const
 void
 DistributedSimulatorImpl::Run (void)
 {
+// Setup load balancing application
+m_loadBalancingApplication = new LoadBalancingApplication();
+m_loadBalancingApplication->SetState(STATIC);
 m_loadBalancingApplication->SetStartTime (Seconds (0));
 m_loadBalancingApplication->Start ();
 

@@ -308,6 +308,7 @@ LoadBalancingApplication::UpdateNetworkGraph ()
 {
 
   MPI_Status stat;
+
   int *loads = (int *)malloc(sizeof(int) * m_networkGraph.gnvtxs);
 
   for (int i = 0; i < m_mpiNumProcesses; i++){
@@ -392,7 +393,6 @@ LoadBalancingApplication::ComputeNetworkGraphPartition(void) {
 
   std::cerr << "ComputeNetworkGraphPartition " << m_mpiProcessId << std::endl;
   Reclustering ();
-
   WriteClusterGraph("graph_test_");
 }
 

@@ -128,7 +128,6 @@ private:
 
   Time          m_delay;
   int32_t       m_nDevices;
-  uint32_t      m_traffic;
 
   /**
    * The trace source for the packet transmission animation events that the 
