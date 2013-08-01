@@ -261,6 +261,7 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
   if ((m_currentContext > 0) && (m_currentContext < NodeContainer::GetGlobal ().GetN ()))
   {
       m_loadBalancingApplication->m_networkGraph.gvwgt[m_currentContext]++;
+      std::cerr << ".";
   }
 
   next.impl->Invoke ();
