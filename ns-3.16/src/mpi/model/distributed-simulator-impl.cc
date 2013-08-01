@@ -260,9 +260,7 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
 
   if ((m_currentContext > 0) && (m_currentContext < NodeContainer::GetGlobal ().GetN ()))
   {
-	  std::cerr << "before" << std::endl;
       m_loadBalancingApplication->m_networkGraph.gvwgt[m_currentContext]++;
-      std::cerr << "after" << std::endl;
   }
 
   next.impl->Invoke ();
@@ -295,8 +293,6 @@ DistributedSimulatorImpl::Run (void)
 {
 m_loadBalancingApplication->SetStartTime (Seconds (0));
 m_loadBalancingApplication->Start ();
-
-std::cerr << "DistributedSimulatorImpl::Run" << std::endl;
 
 #ifdef NS3_MPI
   CalculateLookAhead ();

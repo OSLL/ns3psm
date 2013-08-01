@@ -213,9 +213,6 @@ void LoadBalancingApplication::Reclustering ()
 void
 LoadBalancingApplication::CreateNetworkGraph (void)
 {
-
-  std::cerr << "CreateNetworkGraph" << std::endl;
-
   NodeContainer node_container =  NodeContainer::GetGlobal ();
 
   // set global num of vertex
@@ -393,6 +390,7 @@ LoadBalancingApplication::WriteClusterGraph (const std::string& filename)
 void
 LoadBalancingApplication::ComputeNetworkGraphPartition(void) {
 
+  std::cerr << "ComputeNetworkGraphPartition " << m_mpiProcessId << std::endl;
   Reclustering ();
 
   WriteClusterGraph("graph_test_");
