@@ -49,34 +49,6 @@
 #include "ns3/ipv4-list-routing-helper.h"
 #include "ns3/ipv4-nix-vector-helper.h"
 
-#include "../model/load-balancing-application.h"
-
-#include <boost/graph/graphviz.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include "ns3/node-container.h"
-
-// vertex_name - for reading from dot
-// vertex_color - load
-// vertex_distance - # cluster node
-typedef boost::property < boost::vertex_name_t, uint32_t, boost::property < boost::vertex_color_t, uint32_t, boost::property < boost::vertex_distance_t, uint32_t > > > vertex_p;
-// edge_weight - traffic
-// edge_weight2 - delay
-typedef boost::property < boost::edge_weight_t, uint32_t, boost::property < boost::edge_weight2_t, int64_t > > edge_p;
-
-typedef boost::adjacency_list <
-                    boost::vecS,
-                    boost::vecS,
-                    boost::undirectedS,
-                    vertex_p,
-                    edge_p
-> graph_nms_t; //graph type
-
-typedef boost:: graph_traits<  graph_nms_t >::vertex_descriptor vertex_descriptor;
-typedef boost::graph_traits<  graph_nms_t >::edge_descriptor edge_descriptor;
-typedef boost::graph_traits<  graph_nms_t >::adjacency_iterator graph_adjacency_iterator;
-typedef boost::graph_traits<  graph_nms_t >::vertex_iterator graph_vertex_iterator;
-typedef boost::graph_traits<  graph_nms_t >::edge_iterator graph_edge_iterator;
-
 #ifdef NS3_MPI
 #include <mpi.h>
 #endif
@@ -104,12 +76,8 @@ main (int argc, char *argv[])
   GlobalValue::Bind ("SimulatorImplementationType",
                      StringValue ("ns3::DistributedSimulatorImpl"));
 
-
-
   uint32_t systemId = MpiInterface::GetSystemId ();
   uint32_t systemCount = MpiInterface::GetSize ();
-
-  LogComponentEnable ("CampusNetworkModelDistributed", LOG_LEVEL_FUNCTION);
 
   //temporary fix see bug 1560
   #define nCN (2)
@@ -118,7 +86,6 @@ main (int argc, char *argv[])
   int32_t single = 0;
   int nBytes = 500000; // Bytes for each on/off app
   bool nix = true;
-  bool load = true;
 
   CommandLine cmd;
   //cmd.AddValue ("CN", "Number of total CNs [2]", nCN);
@@ -126,7 +93,6 @@ main (int argc, char *argv[])
   cmd.AddValue ("single", "1 if use single flow", single);
   cmd.AddValue ("nBytes", "Number of bytes for each on/off app", nBytes);
   cmd.AddValue ("nix", "Toggle the use of nix-vector or global routing", nix);
-  cmd.AddValue ("load", "load_balancing", load);
   cmd.Parse (argc,argv);
 
   if (nCN < 2)
@@ -147,72 +113,6 @@ main (int argc, char *argv[])
   NodeContainer nodes_net0[nCN][3], nodes_net1[nCN][6], nodes_netLR[nCN],
                 nodes_net2[nCN][14], nodes_net2LAN[nCN][7][nLANClients],
                 nodes_net3[nCN][9], nodes_net3LAN[nCN][5][nLANClients];
-
-  uint32_t clusters_net0[nCN][3], clusters_net1[nCN][6], clusters_netLR[2 * nCN],
-  clusters_net2[nCN][14], clusters_net2LAN[nCN][7][nLANClients],
-  clusters_net3[nCN][9], clusters_net3LAN[nCN][5][nLANClients];
-
-  graph_nms_t g;
-
-  boost::dynamic_properties dp;
-
-  boost::property_map<graph_nms_t, boost::vertex_name_t>::type name =
-  boost::get(boost::vertex_name, g);
-  dp.property("node_id", name);
-
-  boost::property_map<graph_nms_t, boost::vertex_distance_t>::type color =
-  boost::get(boost::vertex_distance, g);
-  dp.property("label", color);
-
-  std::ifstream res_file("graph_cl.dot");
-  boost::read_graphviz(res_file, g, dp, "node_id");
-
-  //size_t node_num = 0;
-
-  for (uint32_t z = 0; z < nCN; ++z)
-      {
-        for (int i = 0; i < 3; ++i)
-          {
-            clusters_net0[z][i] = z;//boost::get(boost::vertex_distance, g, node_num++);
-          }
-
-        for (int i = 0; i < 6; ++i)
-          {
-            clusters_net1[z][i] =  z;//boost::get(boost::vertex_distance, g, node_num++);
-          }
-
-        for (int i = 0; i < 14; ++i)
-          {
-            clusters_net2[z][i] =  z;//boost::get(boost::vertex_distance, g, node_num++);
-          }
-        for (int i = 0; i < 7; ++i)
-          {
-            for (uint32_t j = 0; j < nLANClients; ++j)
-              {
-                clusters_net2LAN[z][i][j] =  z;//boost::get(boost::vertex_distance, g, node_num++);
-              }
-          }
-
-        for (int i = 0; i < 9; ++i)
-          {
-            clusters_net3[z][i] =  z;//boost::get(boost::vertex_distance, g, node_num++);
-          }
-
-        for (int i = 0; i < 5; ++i)
-          {
-            for (uint32_t j = 0; j < nLANClients; ++j)
-              {
-                clusters_net3LAN[z][i][j] =  z;//boost::get(boost::vertex_distance, g, node_num++);
-              }
-          }
-
-        clusters_netLR[2 * z] =  z;//boost::get(boost::vertex_distance, g, node_num++);
-        clusters_netLR[2 * z + 1] =  z;//boost::get(boost::vertex_distance, g, node_num++);
-      }
-
-
-
-
   PointToPointHelper p2p_2gb200ms, p2p_1gb5ms, p2p_100mb1ms;
   InternetStackHelper stack;
   Ipv4InterfaceContainer ifs, ifs0[nCN][3], ifs1[nCN][6], ifs2[nCN][14],
@@ -239,7 +139,6 @@ main (int argc, char *argv[])
       stack.SetRoutingHelper (list); // has effect on the next Install ()
     }
 
-
   // Create Campus Networks
   for (uint32_t z = 0; z < nCN; ++z)
     {
@@ -248,7 +147,7 @@ main (int argc, char *argv[])
       std::cout << "  SubNet [ 0";
       for (int i = 0; i < 3; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (clusters_net0[z][i]);
+          Ptr<Node> node = CreateObject<Node> (z % systemCount);
           nodes_net0[z][i].Add (node);
           stack.Install (nodes_net0[z][i]);
         }
@@ -264,7 +163,7 @@ main (int argc, char *argv[])
       std::cout << " 1";
       for (int i = 0; i < 6; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (clusters_net1[z][i]);
+          Ptr<Node> node = CreateObject<Node> (z % systemCount);
           nodes_net1[z][i].Add (node);
           stack.Install (nodes_net1[z][i]);
         }
@@ -296,7 +195,7 @@ main (int argc, char *argv[])
       std::cout << " 2";
       for (int i = 0; i < 14; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (clusters_net2[z][i]);
+          Ptr<Node> node = CreateObject<Node> (z % systemCount);
           nodes_net2[z][i].Add (node);
           stack.Install (nodes_net2[z][i]);
         }
@@ -327,7 +226,7 @@ main (int argc, char *argv[])
           address.SetBase (oss.str ().c_str (), "255.255.255.0");
           for (uint32_t j = 0; j < nLANClients; ++j)
             {
-              Ptr<Node> node = CreateObject<Node> (clusters_net2LAN[z][i][j]);
+              Ptr<Node> node = CreateObject<Node> (z % systemCount);
               nodes_net2LAN[z][i][j].Add (node);
               stack.Install (nodes_net2LAN[z][i][j]);
               nodes_net2LAN[z][i][j].Add (nodes_net2[z][i + 7].Get (0));
@@ -339,7 +238,7 @@ main (int argc, char *argv[])
       std::cout << " 3 ]" << std::endl;
       for (int i = 0; i < 9; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (clusters_net3[z][i]);
+          Ptr<Node> node = CreateObject<Node> (z % systemCount);
           nodes_net3[z][i].Add (node);
           stack.Install (nodes_net3[z][i]);
         }
@@ -365,7 +264,7 @@ main (int argc, char *argv[])
           address.SetBase (oss.str ().c_str (), "255.255.255.255");
           for (uint32_t j = 0; j < nLANClients; ++j)
             {
-              Ptr<Node> node = CreateObject<Node> (clusters_net3LAN[z][i][j]);
+              Ptr<Node> node = CreateObject<Node> (z % systemCount);
               nodes_net3LAN[z][i][j].Add (node);
               stack.Install (nodes_net3LAN[z][i][j]);
               nodes_net3LAN[z][i][j].Add (nodes_net3[z][i + 4].Get (0));
@@ -375,8 +274,8 @@ main (int argc, char *argv[])
         }
       std::cout << "  Connecting Subnets..." << std::endl;
       // Create Lone Routers (Node 4 & 5)
-      Ptr<Node> node1 = CreateObject<Node> (clusters_netLR[2 * z]);
-      Ptr<Node> node2 = CreateObject<Node> (clusters_netLR[2 * z + 1]);
+      Ptr<Node> node1 = CreateObject<Node> (z % systemCount);
+      Ptr<Node> node2 = CreateObject<Node> (z % systemCount);
       nodes_netLR[z].Add (node1);
       nodes_netLR[z].Add (node2);
       stack.Install (nodes_netLR[z]);
@@ -572,7 +471,7 @@ main (int argc, char *argv[])
 
                       sinkApp.Start (Seconds (0.0));
                     }
-                  else if (systemId == clusters_net2LAN[z][i][j])
+                  else if (systemId == z % systemCount)
                     {
                       PacketSinkHelper sinkHelper
                         ("ns3::UdpSocketFactory",
@@ -598,22 +497,19 @@ main (int argc, char *argv[])
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
                       clientApp.Start (Seconds (r2));
                     }
-                  else {
-                      r1 = 3;
-                	 if (systemId == clusters_net1[x][r1])
-                      {
+                  else if (systemId == x % systemCount)
+                    {
+                      r1 = 2 + (int)(4 * urng->GetValue ());
+                      r2 = 10 * urng->GetValue ();
+                      OnOffHelper client ("ns3::UdpSocketFactory", Address ());
 
-						  r2 = 10 * urng->GetValue ();
-						  OnOffHelper client ("ns3::UdpSocketFactory", Address ());
+                      AddressValue remoteAddress
+                        (InetSocketAddress (ifs2LAN[z][i][j].GetAddress (0), 9999));
 
-						  AddressValue remoteAddress
-							(InetSocketAddress (ifs2LAN[z][i][j].GetAddress (0), 9999));
-
-						  client.SetAttribute ("Remote", remoteAddress);
-						  ApplicationContainer clientApp;
-						  clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
-						  clientApp.Start (Seconds (r2));
-						}
+                      client.SetAttribute ("Remote", remoteAddress);
+                      ApplicationContainer clientApp;
+                      clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
+                      clientApp.Start (Seconds (r2));
                     }
                 }
             }
@@ -635,7 +531,7 @@ main (int argc, char *argv[])
 
                       sinkApp.Start (Seconds (0.0));
                     }
-                  else if (systemId == clusters_net3LAN[z][i][j])
+                  else if (systemId == z % systemCount)
                     {
                       PacketSinkHelper sinkHelper
                         ("ns3::UdpSocketFactory",
@@ -661,21 +557,19 @@ main (int argc, char *argv[])
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
                       clientApp.Start (Seconds (r2));
                     }
-                  else {
-                      r1 = 2;
-                	  if (systemId == clusters_net1[x][r1])
-						{
-						  r2 = 10 * urng->GetValue ();
-						  OnOffHelper client ("ns3::UdpSocketFactory", Address ());
+                  else if (systemId == x % systemCount)
+                    {
+                      r1 = 2 + (int)(4 * urng->GetValue ());
+                      r2 = 10 * urng->GetValue ();
+                      OnOffHelper client ("ns3::UdpSocketFactory", Address ());
 
-						  AddressValue remoteAddress
-							(InetSocketAddress (ifs3LAN[z][i][j].GetAddress (0), 9999));
+                      AddressValue remoteAddress
+                        (InetSocketAddress (ifs3LAN[z][i][j].GetAddress (0), 9999));
 
-						  client.SetAttribute ("Remote", remoteAddress);
-						  ApplicationContainer clientApp;
-						  clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
-						  clientApp.Start (Seconds (r2));
-						}
+                      client.SetAttribute ("Remote", remoteAddress);
+                      ApplicationContainer clientApp;
+                      clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
+                      clientApp.Start (Seconds (r2));
                     }
                 }
             }
@@ -702,61 +596,6 @@ main (int argc, char *argv[])
   std::cout << "Routing tables population took "
        << TIMER_DIFF (routingEnd, routingStart) << std::endl;
 
-  graph_nms_t m_networkGraph;
-
-  NodeContainer node_container = NodeContainer::GetGlobal();
-  std::map<uint32_t, vertex_descriptor> m_networkGraphVertexMap;
-
-  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
-    {
-	 m_networkGraphVertexMap[(*it)->GetId()] = boost::add_vertex(m_networkGraph);
-	 boost::put(boost::vertex_name, m_networkGraph, m_networkGraphVertexMap[(*it)->GetId()], (*it)->GetId());
-	 boost::put(boost::vertex_distance, m_networkGraph, m_networkGraphVertexMap[(*it)->GetId()], (*it)->GetSystemId());
-    }
-
-  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
-    {
-      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
-        {
-          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
-          // only works for p2p links currently
-          if (!localNetDevice->IsPointToPoint ()) continue;
-          Ptr<Channel> channel = localNetDevice->GetChannel ();
-          if (channel == 0) continue;
-          // grab the adjacent node
-          Ptr<Node> remoteNode;
-          if (channel->GetDevice (1) == localNetDevice)
-            {
-               remoteNode = (channel->GetDevice (0))->GetNode ();
-               TimeValue delay;
-               channel->GetAttribute ("Delay", delay);
-               edge_descriptor e = boost::add_edge (m_networkGraphVertexMap[(*it)->GetId ()],
-                                m_networkGraphVertexMap[remoteNode->GetId ()],
-                                m_networkGraph).first;
-              boost::put(boost::edge_weight, m_networkGraph, e, delay.Get().GetMilliSeconds());
-             }
-        }
-    }
-
-
-  std::ofstream graphStream2((std::string("graph_ress") + boost::lexical_cast<std::string>(systemId) + std::string(".dot")).c_str());
-
-  boost::dynamic_properties dp2;
-
-  boost::property_map<graph_nms_t, boost::vertex_index_t>::type name2 =
-  boost::get(boost::vertex_index, m_networkGraph);
-  dp2.property("node_id", name2);
-
-  boost::property_map<graph_nms_t, boost::vertex_distance_t>::type color2 =
-  boost::get(boost::vertex_distance, m_networkGraph);
-  dp2.property("label", color2);
-
-  boost::property_map<graph_nms_t, boost::edge_weight_t>::type weight2 =
-  boost::get(boost::edge_weight, m_networkGraph);
-  dp2.property("label", weight2);
-
-  boost::write_graphviz_dp(graphStream2, m_networkGraph, dp2);
-
   std::cout << "Running simulator..." << std::endl;
   TIMER_NOW (t1);
   Simulator::Stop (Seconds (100.0));
@@ -771,11 +610,8 @@ main (int argc, char *argv[])
   std::cout << "Simulator init time: " << d1 << std::endl;
   std::cout << "Simulator run time: " << d2 << std::endl;
   std::cout << "Total elapsed time: " << d1 + d2 << std::endl;
-
-
   return 0;
 #else
   NS_FATAL_ERROR ("Can't use distributed simulator without MPI compiled in");
 #endif
 }
-
