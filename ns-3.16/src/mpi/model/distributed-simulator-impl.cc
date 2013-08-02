@@ -889,14 +889,14 @@ DistributedSimulatorImpl::UpdateNetworkGraph ()
     }
   }
 
+  MPI_Barrier (MPI_COMM_WORLD);
+
   // clean statistic to correct balancing at the next partition iteration
   for (size_t i = 0; i < m_networkGraph.nvtxs; i++) {
 	  m_networkGraph.vwgt[i] = 0;
   }
 
-  for (size_t i = 0; i < m_networkGraph.gnvtxs; i++) {
-	  m_networkGraph.gvwgt[i] = 0;
-  }
+  MPI_Barrier (MPI_COMM_WORLD);
 
   // get load statistic from other processes
   for (int i = 0; i < m_mpiNumProcesses; i++) {
@@ -906,6 +906,12 @@ DistributedSimulatorImpl::UpdateNetworkGraph ()
          m_networkGraph.vwgt[j] += loads[m_networkGraph.vtxdist[m_mpiProcessId] + j];
       }
     }
+  }
+
+  MPI_Barrier (MPI_COMM_WORLD);
+
+  for (size_t i = 0; i < m_networkGraph.gnvtxs; i++) {
+	  m_networkGraph.gvwgt[i] = 0;
   }
 
   MPI_Barrier (MPI_COMM_WORLD);
