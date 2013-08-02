@@ -328,6 +328,7 @@ DistributedSimulatorImpl::Run (void)
 #ifdef NS3_MPI
   // create network graph
   CreateNetworkGraph ();
+  WriteClusterGraph("graph_start_");
 
   // start reclustering
   if (m_state == DYNAMIC) {

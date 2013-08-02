@@ -104,7 +104,8 @@ main (int argc, char *argv[])
   /**
   * Added by olya - start
   */
-  bool read_from_file = false;
+  // reaed nodes distribution from file or standart
+  bool read_from_file = true;
   /**
   * Added by olya - end
   */
@@ -146,18 +147,20 @@ main (int argc, char *argv[])
 
   boost_graph_t g;
 
-  boost::dynamic_properties dp;
+  if (read_from_file) {
+    boost::dynamic_properties dp;
 
-  boost::property_map<boost_graph_t, boost::vertex_name_t>::type name =
-  boost::get(boost::vertex_name, g);
-  dp.property("node_id", name);
+    boost::property_map<boost_graph_t, boost::vertex_name_t>::type name =
+    boost::get(boost::vertex_name, g);
+    dp.property("node_id", name);
 
-  boost::property_map<boost_graph_t, boost::vertex_distance_t>::type color =
-  boost::get(boost::vertex_distance, g);
-  dp.property("label", color);
+    boost::property_map<boost_graph_t, boost::vertex_distance_t>::type color =
+    boost::get(boost::vertex_distance, g);
+    dp.property("label", color);
 
-  std::ifstream res_file("graph_cl.dot");
-  boost::read_graphviz(res_file, g, dp, "node_id");
+    std::ifstream res_file("graph_cl.dot");
+    boost::read_graphviz(res_file, g, dp, "node_id");
+  }
 
   size_t node_num = 0;
 
