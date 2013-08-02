@@ -580,7 +580,10 @@ main (int argc, char *argv[])
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
                       clientApp.Start (Seconds (r2));
                     }
-                  else if (systemId == clusters_net1[x][r1])
+                  else
+                  {
+                    r1 = 2 + (int)(4 * urng->GetValue ());
+                    if (systemId == clusters_net1[x][r1])
                     {
                       r1 = 2 + (int)(4 * urng->GetValue ());
                       r2 = 10 * urng->GetValue ();
@@ -594,6 +597,7 @@ main (int argc, char *argv[])
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
                       clientApp.Start (Seconds (r2));
                     }
+                  }
                 }
             }
           // Subnet 3 LANs
@@ -640,9 +644,11 @@ main (int argc, char *argv[])
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
                       clientApp.Start (Seconds (r2));
                     }
-                  else if (systemId == clusters_net1[x][r1])
+                  else
+                  {
+                    r1 = 2 + (int)(4 * urng->GetValue ());
+                    if (systemId == clusters_net1[x][r1])
                     {
-                      r1 = 2 + (int)(4 * urng->GetValue ());
                       r2 = 10 * urng->GetValue ();
                       OnOffHelper client ("ns3::UdpSocketFactory", Address ());
 
@@ -654,6 +660,7 @@ main (int argc, char *argv[])
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
                       clientApp.Start (Seconds (50/*r2*/));
                     }
+                  }
                 }
             }
         }
