@@ -114,7 +114,7 @@ DistributedSimulatorImpl::DistributedSimulatorImpl ()
    * Added by olya - start
    */
 #ifdef NS3_MPI
-  m_state = STATIC;
+  m_state = DYNAMIC;
   m_reclusteringInterval = Seconds (20),
   m_iterationNum = 0;
 

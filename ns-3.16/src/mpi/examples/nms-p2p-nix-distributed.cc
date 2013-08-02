@@ -554,7 +554,7 @@ main (int argc, char *argv[])
 
                       sinkApp.Start (Seconds (0.0));
                     }
-                  else if (systemId == z % systemCount)
+                  else if (systemId == clusters_net2LAN[z][i][j])
                     {
                       PacketSinkHelper sinkHelper
                         ("ns3::UdpSocketFactory",
@@ -580,7 +580,7 @@ main (int argc, char *argv[])
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
                       clientApp.Start (Seconds (r2));
                     }
-                  else if (systemId == x % systemCount)
+                  else if (systemId == clusters_net1[x][r1])
                     {
                       r1 = 2 + (int)(4 * urng->GetValue ());
                       r2 = 10 * urng->GetValue ();
@@ -614,7 +614,7 @@ main (int argc, char *argv[])
 
                       sinkApp.Start (Seconds (0.0));
                     }
-                  else if (systemId == z % systemCount)
+                  else if (systemId == clusters_net3LAN[z][i][j])
                     {
                       PacketSinkHelper sinkHelper
                         ("ns3::UdpSocketFactory",
@@ -623,7 +623,7 @@ main (int argc, char *argv[])
                       ApplicationContainer sinkApp =
                         sinkHelper.Install (nodes_net3LAN[z][i][j].Get (0));
 
-                      sinkApp.Start (Seconds (0.0));
+                      sinkApp.Start (Seconds (50.0));
                     }
                   // Sources
                   if (systemCount == 1)
@@ -640,7 +640,7 @@ main (int argc, char *argv[])
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
                       clientApp.Start (Seconds (r2));
                     }
-                  else if (systemId == x % systemCount)
+                  else if (systemId == clusters_net1[x][r1])
                     {
                       r1 = 2 + (int)(4 * urng->GetValue ());
                       r2 = 10 * urng->GetValue ();
@@ -652,7 +652,7 @@ main (int argc, char *argv[])
                       client.SetAttribute ("Remote", remoteAddress);
                       ApplicationContainer clientApp;
                       clientApp.Add (client.Install (nodes_net1[x][r1].Get (0)));
-                      clientApp.Start (Seconds (r2));
+                      clientApp.Start (Seconds (50/*r2*/));
                     }
                 }
             }
