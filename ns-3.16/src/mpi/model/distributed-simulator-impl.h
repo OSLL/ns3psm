@@ -89,7 +89,7 @@ struct parmetis_graph_t
 {
 
   // num of vertex (global), num of vertex (local)
-  int gnvtxs, nvtxs;
+  size_t gnvtxs, nvtxs;
 
   // physical vertex distribution (for partition computing)
   parmetis_idx_t* vtxdist;
