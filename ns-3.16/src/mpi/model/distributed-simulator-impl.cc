@@ -615,7 +615,7 @@ DistributedSimulatorImpl::Reclustering ()
   }
 
   // replace results from own m_networkGraph.part into global m_networkGraph.part_all
-  for (int i = 0; i < m_networkGraph.nvtxs; i++) {
+  for (size_t i = 0; i < m_networkGraph.nvtxs; i++) {
     m_networkGraph.part_all[m_networkGraph.vtxdist[m_mpiProcessId] + i] = m_networkGraph.part[i];
   }
 
@@ -631,7 +631,7 @@ DistributedSimulatorImpl::Reclustering ()
   if (m_state == DYNAMIC) {
 
     // for each vertex
-    for (int i = 0; i < m_networkGraph.gnvtxs; ++i) {
+    for (size_t i = 0; i < m_networkGraph.gnvtxs; ++i) {
 
     	// find vertex that must goes to another process
       if (((int)NodeList::GetNode (i)->GetSystemId() == m_mpiProcessId) && (m_networkGraph.part_all[i] != m_mpiProcessId)) {
@@ -660,7 +660,7 @@ DistributedSimulatorImpl::Reclustering ()
     MPI_Barrier (MPI_COMM_WORLD);
 
     // for each vertex
-    for (int i = 0; i < m_networkGraph.gnvtxs; ++i) {
+    for (size_t i = 0; i < m_networkGraph.gnvtxs; ++i) {
 
       // find vertex that must goes to this process
       if ((m_networkGraph.part_all[i] == m_mpiProcessId) && ((int)NodeList::GetNode (i)->GetSystemId() != m_mpiProcessId)) {
@@ -765,7 +765,7 @@ DistributedSimulatorImpl::CreateNetworkGraph (void)
     }
 
   m_networkGraph.xadj[0] = 0;
-  for (int i = 1; i < m_networkGraph.nvtxs + 1; i++)
+  for (size_t i = 1; i < m_networkGraph.nvtxs + 1; i++)
   {
 	  m_networkGraph.xadj[i] += m_networkGraph.xadj[i - 1];
   }
@@ -822,18 +822,18 @@ DistributedSimulatorImpl::UpdateNetworkGraph ()
     	MPI_Send((void *)m_networkGraph.gvwgt, m_networkGraph.gnvtxs, MPI_INT, i, 123, MPI_COMM_WORLD);
     }
   }
-  for (int i = 0; i < m_networkGraph.nvtxs; i++) {
+  for (size_t i = 0; i < m_networkGraph.nvtxs; i++) {
 	  m_networkGraph.vwgt[i] = 0;
   }
 
-  for (int i = 0; i < m_networkGraph.gnvtxs; i++) {
+  for (size_t i = 0; i < m_networkGraph.gnvtxs; i++) {
 	  m_networkGraph.gvwgt[i] = 0;
   }
 
   for (int i = 0; i < m_mpiNumProcesses; i++) {
     if (i != m_mpiProcessId) {
       MPI_Recv((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 123, MPI_COMM_WORLD, &stat);
-      for (int j = 0; j < m_networkGraph.nvtxs; j++) {
+      for (size_t j = 0; j < m_networkGraph.nvtxs; j++) {
          m_networkGraph.vwgt[j] += loads[m_networkGraph.vtxdist[m_mpiProcessId] + j];
       }
     }
