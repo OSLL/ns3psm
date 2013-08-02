@@ -87,6 +87,7 @@ typedef real_t parmetis_real_t;
  */
 struct parmetis_graph_t
 {
+  // some of descriptions in comments for parmetis_graph_t members was taken from http://pige.giref.ulaval.ca/resources/parmetis/manual.pdf
 
   // num of vertex (global), num of vertex (local)
   size_t gnvtxs, nvtxs;
