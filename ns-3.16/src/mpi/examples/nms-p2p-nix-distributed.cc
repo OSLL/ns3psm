@@ -165,7 +165,7 @@ main (int argc, char *argv[])
   std::map<size_t, size_t> nameToIndexMap;
 
   for (size_t i = 0; i < boost::num_vertices(g); i++) {
-	  nameToIndexMap[boost::get(boost::vertex_name, g. i)] = i;
+	  nameToIndexMap[boost::get(boost::vertex_name, g, i)] = i;
   }
 
   size_t node_num = 0;
