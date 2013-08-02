@@ -285,7 +285,7 @@ DistributedSimulatorImpl::ProcessOneEvent (void)
   * Added by olya - start
   */
 #ifdef NS3_MPI
-  if ((m_currentContext >= 0) && (m_currentContext < NodeContainer::GetGlobal ().GetN ()))
+  if ((m_currentContext >= 0) && (m_currentContext < m_networkGraph.gnvtxs))
   {
       m_networkGraph.gvwgt[m_currentContext]++;
   }
@@ -710,6 +710,8 @@ DistributedSimulatorImpl::Reclustering ()
 void
 DistributedSimulatorImpl::CreateNetworkGraph (void)
 {
+  std::cerr << "Graph creation start... " << std::endl;
+
   NodeContainer node_container =  NodeContainer::GetGlobal ();
 
   // set global num of vertex
@@ -802,12 +804,14 @@ DistributedSimulatorImpl::CreateNetworkGraph (void)
   }
 
   MPI_Barrier (MPI_COMM_WORLD);
+  std::cerr << "Graph creation finished" << std::endl;
 
 }
 
 void
 DistributedSimulatorImpl::UpdateNetworkGraph ()
 {
+  std::cerr << "Graph update start... " << std::endl;
 
   MPI_Status stat;
 
@@ -837,11 +841,15 @@ DistributedSimulatorImpl::UpdateNetworkGraph ()
 
   MPI_Barrier (MPI_COMM_WORLD);
 
+  std::cerr << "Graph update finished" << std::endl;
+
 }
 
 void
 DistributedSimulatorImpl::WriteClusterGraph (const std::string& filename)
 {
+
+  std::cerr << "Graph writing start... " << std::endl;
 
   boost_graph_t g;
 
@@ -890,6 +898,8 @@ DistributedSimulatorImpl::WriteClusterGraph (const std::string& filename)
 
 
   boost::write_graphviz_dp(graphStream, g, dp);
+
+  std::cerr << "Graph writing finished" << std::endl;
 
 }
 
