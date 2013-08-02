@@ -162,28 +162,34 @@ main (int argc, char *argv[])
     boost::read_graphviz(res_file, g, dp, "node_id");
   }
 
+  std::map<size_t, size_t> nameToIndexMap;
+
+  for (size_t i = 0; i < boost::num_vertices(g); i++) {
+	  nameToIndexMap[boost::get(boost::vertex_name, g. i)] = i;
+  }
+
   size_t node_num = 0;
 
   for (uint32_t z = 0; z < nCN; ++z)
       {
-        for (int i = 0; i < 3; ++i) clusters_net0[z][i] = read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
-        for (int i = 0; i < 6; ++i) clusters_net1[z][i] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
-        for (int i = 0; i < 14; ++i) clusters_net2[z][i] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+        for (int i = 0; i < 3; ++i) clusters_net0[z][i] = read_from_file ? boost::get(boost::vertex_distance, g, nameToIndexMap[node_num++]) : z;
+        for (int i = 0; i < 6; ++i) clusters_net1[z][i] =  read_from_file ? boost::get(boost::vertex_distance, g, nameToIndexMap[node_num++]) : z;
+        for (int i = 0; i < 14; ++i) clusters_net2[z][i] =  read_from_file ? boost::get(boost::vertex_distance, g, nameToIndexMap[node_num++]) : z;
 
         for (int i = 0; i < 7; ++i)
           {
-            for (uint32_t j = 0; j < nLANClients; ++j) clusters_net2LAN[z][i][j] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+            for (uint32_t j = 0; j < nLANClients; ++j) clusters_net2LAN[z][i][j] =  read_from_file ? boost::get(boost::vertex_distance, g, nameToIndexMap[node_num++]) : z;
           }
 
-        for (int i = 0; i < 9; ++i) clusters_net3[z][i] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+        for (int i = 0; i < 9; ++i) clusters_net3[z][i] =  read_from_file ? boost::get(boost::vertex_distance, g, nameToIndexMap[node_num++]) : z;
 
         for (int i = 0; i < 5; ++i)
           {
-            for (uint32_t j = 0; j < nLANClients; ++j) clusters_net3LAN[z][i][j] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+            for (uint32_t j = 0; j < nLANClients; ++j) clusters_net3LAN[z][i][j] =  read_from_file ? boost::get(boost::vertex_distance, g, nameToIndexMap[node_num++]) : z;
           }
 
-        clusters_netLR[2 * z] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
-        clusters_netLR[2 * z + 1] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+        clusters_netLR[2 * z] =  read_from_file ? boost::get(boost::vertex_distance, g, nameToIndexMap[node_num++]) : z;
+        clusters_netLR[2 * z + 1] =  read_from_file ? boost::get(boost::vertex_distance, g, nameToIndexMap[node_num++]) : z;
       }
 
   /**
