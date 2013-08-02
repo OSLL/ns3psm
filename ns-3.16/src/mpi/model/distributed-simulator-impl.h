@@ -351,8 +351,12 @@ private:
   // reclustering interval
   Time m_reclusteringInterval;
 
-  // network graph
+  // network graph in csr format - for repartition computing
   parmetis_graph_t m_networkGraph;
+  // network graph in boost format - for easy writing
+  boost_graph_t m_networkBoostGraph;
+  // keep vertex_descriptor for easy work with boost graph
+  std::map<size_t, vertex_descriptor> m_networkBoostGraphVertexMap;
 
   // repartition iteration number - for dynamic static
   uint32_t m_iterationNum;

@@ -198,7 +198,7 @@ DistributedSimulatorImpl::CalculateLookAhead (void)
               continue;
             }
 
-          for (uint32_t i = 0; i < (*iter)->GetNDevices (); ++i)
+          for (size_t i = 0; i < (*iter)->GetNDevices (); ++i)
             {
               Ptr<NetDevice> localNetDevice = (*iter)->GetDevice (i);
               // only works for p2p links currently
@@ -643,8 +643,9 @@ DistributedSimulatorImpl::Reclustering ()
         std::string applications;
         std::vector<Ptr<Application> > nodeApplications = nodeForMoving->GetApplications ();
 
-        for (uint32_t j = 0; j < nodeApplications.size (); ++j)
+        for (size_t j = 0; j < nodeApplications.size (); ++j)
         {
+          // save application type
           applications.append(nodeApplications[j]->GetInstanceTypeId ().GetName ());
           applications.append(" ");
           nodeApplications[j]-> SetStopTime(Simulator::Now());
@@ -684,11 +685,13 @@ DistributedSimulatorImpl::Reclustering ()
             nodeForMoving-> SetSystemId (m_networkGraph.part_all[i]);
 
             // start applications
-            for (uint32_t j = 0; j < nodeApplications.size (); ++j)
+            for (size_t j = 0; j < nodeApplications.size (); ++j)
               {
+                // create application by type
                 ObjectFactory objectFactory;
                 objectFactory.SetTypeId (TypeId::LookupByName (nodeApplications[j]) );
                 Ptr<Application> application = objectFactory.Create<Application> ();
+                // start application
                 application-> SetStartTime (Simulator::Now());
                 application-> Start ();
                 nodeForMoving->AddApplication (application);
@@ -736,22 +739,36 @@ DistributedSimulatorImpl::CreateNetworkGraph (void)
   m_networkGraph.xadj = new parmetis_idx_t [m_networkGraph.nvtxs + 1];
   m_networkGraph.vwgt = new parmetis_idx_t [m_networkGraph.nvtxs];
   m_networkGraph.gvwgt = new parmetis_idx_t [m_networkGraph.gnvtxs];
-  m_networkGraph.part = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.nvtxs);
-  m_networkGraph.part_all = (parmetis_idx_t *)malloc(sizeof(parmetis_idx_t) * m_networkGraph.gnvtxs);
+  m_networkGraph.part = new parmetis_idx_t [m_networkGraph.nvtxs];
+  m_networkGraph.part_all = new parmetis_idx_t [m_networkGraph.gnvtxs];
 
+
+  /*
+   * to build specific csr format we need at first step count number of neighbours for each vertex
+   */
+
+  // local vertex index (in array part)
   parmetis_idx_t index = 0;
 
+  // go throw all vertex
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
       // node id into interval [m_networkGraph.vtxdist[m_mpiProcessId], m_networkGraph.vtxdist[m_mpiProcessId + 1]]
+	  // so this vertex will handled by this process (at repartition stage)
+	  // rem! vertex distribution throw processes for parmetis not the same as for simulator
       if (((int)(*it)->GetId() >= m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() < m_networkGraph.vtxdist[m_mpiProcessId + 1]))
         {
-
+          // edges counter for current vertex
           parmetis_idx_t edge_index = 0;
+
+          // comupute local vertex index
           index = (*it)->GetId() - m_networkGraph.vtxdist[m_mpiProcessId];
+
+          // set current partition for vertex - as set at the beginning of simulation
           m_networkGraph.part[index] = (*it)->GetSystemId();
 
-          for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+          // go throw all channels on this node for compute num of neighbours
+          for (size_t i = 0; i < (*it)->GetNDevices (); ++i)
             {
               Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
               if (!localNetDevice->IsPointToPoint ()) continue;
@@ -759,27 +776,40 @@ DistributedSimulatorImpl::CreateNetworkGraph (void)
               if (channel == 0) continue;
               edge_index++;
             }
+          // fill array xadj by computed num of neighbours for each vertex
           m_networkGraph.xadj[index + 1] = edge_index;
         }
+      // fill part_all (global)
       m_networkGraph.part_all[(*it)->GetId()] = (*it)->GetSystemId();
     }
 
+  /*
+   * build graph structure
+   */
+
+  // after pred step xadj[i] = num of neighbours of vertex i
+  // as csr format we need to compute prefix sum for xadj
   m_networkGraph.xadj[0] = 0;
   for (size_t i = 1; i < m_networkGraph.nvtxs + 1; i++)
   {
 	  m_networkGraph.xadj[i] += m_networkGraph.xadj[i - 1];
   }
 
+  // create arrays
   m_networkGraph.adjncy = new parmetis_idx_t[m_networkGraph.xadj[m_networkGraph.nvtxs]];
   m_networkGraph.adjwgt = new parmetis_idx_t[m_networkGraph.xadj[m_networkGraph.nvtxs]];
 
+  // go throw all vertex and fill adjncy  and adjwgt (by delay in channel) arrays
   for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
     {
+	  // vertex will handled by this process (at repartition stage)
       if (((int)(*it)->GetId() >= m_networkGraph.vtxdist[m_mpiProcessId]) && ((int)(*it)->GetId() < m_networkGraph.vtxdist[m_mpiProcessId + 1]))
         {
-    	  index = (*it)->GetId() - m_networkGraph.vtxdist[m_mpiProcessId];
-    	  int current_edge = 0;
-          for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+          // compute local vertex index
+          index = (*it)->GetId() - m_networkGraph.vtxdist[m_mpiProcessId];
+          // go throw all vertex neighbours and fill adjncy and adjwgt
+          int current_edge = 0;
+          for (size_t i = 0; i < (*it)->GetNDevices (); ++i)
             {
               Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
               if (!localNetDevice->IsPointToPoint ()) continue;
@@ -795,15 +825,49 @@ DistributedSimulatorImpl::CreateNetworkGraph (void)
         }
     }
 
+  // set other parameters
   m_networkGraph.nparts = m_mpiNumProcesses;
   m_networkGraph.tpwgts = new parmetis_real_t[m_networkGraph.nparts];
   parmetis_real_t tpw = 1.0/(parmetis_real_t)m_networkGraph.nparts;
 
   for (int i = 0; i < m_networkGraph.nparts; i++) {
-	  m_networkGraph.tpwgts[i] =tpw;
+	  m_networkGraph.tpwgts[i] = tpw;
   }
 
   MPI_Barrier (MPI_COMM_WORLD);
+
+  /*
+   * create boost graph for easy writing graph to files
+   */
+  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+    {
+	  m_networkBoostGraphVertexMap[(*it)->GetId()] = boost::add_vertex(m_networkBoostGraph);
+      boost::put(boost::vertex_name, m_networkBoostGraph, m_networkBoostGraphVertexMap[(*it)->GetId()], (*it)->GetId());
+      boost::put(boost::vertex_color, m_networkBoostGraph, m_networkBoostGraphVertexMap[(*it)->GetId()], m_networkGraph.part_all[(*it)->GetId()]);
+     }
+
+  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+    {
+      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
+        {
+          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
+          // only works for p2p links currently
+          if (!localNetDevice->IsPointToPoint ()) continue;
+          Ptr<Channel> channel = localNetDevice->GetChannel ();
+          if (channel == 0) continue;
+
+          // grab the adjacent node
+          Ptr<Node> remoteNode;
+          if (channel->GetDevice (1) == localNetDevice)
+            {
+               remoteNode = (channel->GetDevice (0))->GetNode ();
+               boost::add_edge (m_networkBoostGraphVertexMap[(*it)->GetId ()],
+                                m_networkBoostGraphVertexMap[remoteNode->GetId ()],
+                                m_networkBoostGraph);
+             }
+        }
+    }
+
   std::cerr << "Graph creation finished" << std::endl;
 
 }
@@ -815,13 +879,16 @@ DistributedSimulatorImpl::UpdateNetworkGraph ()
 
   MPI_Status stat;
 
-  int *loads = (int *)malloc(sizeof(int) * m_networkGraph.gnvtxs);
+  int *loads = new int [m_networkGraph.gnvtxs];
 
+  // each process send to other processes information about statistic at own nodes
   for (int i = 0; i < m_mpiNumProcesses; i++){
     if (i != m_mpiProcessId) {
     	MPI_Send((void *)m_networkGraph.gvwgt, m_networkGraph.gnvtxs, MPI_INT, i, 123, MPI_COMM_WORLD);
     }
   }
+
+  // clean statistic to correct balancing at the next partition iteration
   for (size_t i = 0; i < m_networkGraph.nvtxs; i++) {
 	  m_networkGraph.vwgt[i] = 0;
   }
@@ -830,6 +897,7 @@ DistributedSimulatorImpl::UpdateNetworkGraph ()
 	  m_networkGraph.gvwgt[i] = 0;
   }
 
+  // get load statistic from other processes
   for (int i = 0; i < m_mpiNumProcesses; i++) {
     if (i != m_mpiProcessId) {
       MPI_Recv((void *)loads, m_networkGraph.gnvtxs, MPI_INT, i, 123, MPI_COMM_WORLD, &stat);
@@ -851,53 +919,26 @@ DistributedSimulatorImpl::WriteClusterGraph (const std::string& filename)
 
   std::cerr << "Graph writing start... " << std::endl;
 
-  boost_graph_t g;
-
-  std::map<uint32_t, vertex_descriptor> networkGraphVertexMap;
-
-  NodeContainer node_container =  NodeContainer::GetGlobal();
-  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
+  // put new information about graph partition
+  for (size_t i = 0; i < m_networkGraph.gnvtxs; i++)
     {
-      networkGraphVertexMap[(*it)->GetId()] = boost::add_vertex(g);
-      boost::put(boost::vertex_name, g, networkGraphVertexMap[(*it)->GetId()], (*it)->GetId());
-      boost::put(boost::vertex_color, g, networkGraphVertexMap[(*it)->GetId()], m_networkGraph.part_all[(*it)->GetId()]);
+      boost::put(boost::vertex_color, m_networkBoostGraph, m_networkBoostGraphVertexMap[i], m_networkGraph.part_all[i]);
     }
 
-  for (NodeContainer::Iterator it = node_container.Begin(); it < node_container.End(); ++it)
-    {
-      for (uint32_t i = 0; i < (*it)->GetNDevices (); ++i)
-        {
-          Ptr<NetDevice> localNetDevice = (*it)->GetDevice (i);
-          // only works for p2p links currently
-          if (!localNetDevice->IsPointToPoint ()) continue;
-          Ptr<Channel> channel = localNetDevice->GetChannel ();
-          if (channel == 0) continue;
-
-          // grab the adjacent node
-          Ptr<Node> remoteNode;
-          if (channel->GetDevice (1) == localNetDevice)
-            {
-               remoteNode = (channel->GetDevice (0))->GetNode ();
-               boost::add_edge (networkGraphVertexMap[(*it)->GetId ()],
-                                networkGraphVertexMap[remoteNode->GetId ()],
-                                g);
-             }
-        }
-    }
-  std::ofstream graphStream((filename + std::string(".dot")).c_str());
+  std::ofstream graphStream((filename + boost::lexical_cast<std::string>(m_mpiProcessId) + std::string(".dot")).c_str());
 
   boost::dynamic_properties dp;
 
   boost::property_map<boost_graph_t, boost::vertex_index_t>::type name =
-  boost::get(boost::vertex_index, g);
+  boost::get(boost::vertex_index, m_networkBoostGraph);
   dp.property("node_id", name);
 
   boost::property_map<boost_graph_t, boost::vertex_color_t>::type color =
-  boost::get(boost::vertex_color, g);
+  boost::get(boost::vertex_color, m_networkBoostGraph);
   dp.property("label", color);
 
 
-  boost::write_graphviz_dp(graphStream, g, dp);
+  boost::write_graphviz_dp(graphStream, m_networkBoostGraph, dp);
 
   std::cerr << "Graph writing finished" << std::endl;
 
@@ -909,6 +950,7 @@ DistributedSimulatorImpl::StartDynamicReclustering ()
 
   std::cerr << "Reclustering iteration " << m_iterationNum ++ << " on cluster node "<< m_mpiProcessId << std::endl;
   Reclustering ();
+  // recursive call with m_reclusteringInterval interval
   Simulator::Schedule (m_reclusteringInterval, &DistributedSimulatorImpl::StartDynamicReclustering, this);
 
 }
@@ -917,6 +959,7 @@ void
 DistributedSimulatorImpl::StartStaticReclustering(void) {
 
   std::cerr << "Static reclustering.. " << m_mpiProcessId << std::endl;
+  // call reclustering at the end and write result
   Reclustering ();
   WriteClusterGraph("graph_test_");
 
