@@ -49,6 +49,20 @@
 #include "ns3/ipv4-list-routing-helper.h"
 #include "ns3/ipv4-nix-vector-helper.h"
 
+  /**
+   * Added by olya - start
+   */
+#ifdef NS3_MPI
+#include "ns3/distributed-simulator-impl.h"
+
+#include <boost/graph/graphviz.hpp>
+#include <boost/graph/adj_list_serialize.hpp>
+
+#endif
+  /**
+   * Added by olya - end
+   */
+
 #ifdef NS3_MPI
 #include <mpi.h>
 #endif
@@ -87,6 +101,14 @@ main (int argc, char *argv[])
   int nBytes = 500000; // Bytes for each on/off app
   bool nix = true;
 
+  /**
+  * Added by olya - start
+  */
+  bool read_from_file = false;
+  /**
+  * Added by olya - end
+  */
+
   CommandLine cmd;
   //cmd.AddValue ("CN", "Number of total CNs [2]", nCN);
   //cmd.AddValue ("LAN", "Number of nodes per LAN [42]", nLANClients);
@@ -113,6 +135,58 @@ main (int argc, char *argv[])
   NodeContainer nodes_net0[nCN][3], nodes_net1[nCN][6], nodes_netLR[nCN],
                 nodes_net2[nCN][14], nodes_net2LAN[nCN][7][nLANClients],
                 nodes_net3[nCN][9], nodes_net3LAN[nCN][5][nLANClients];
+
+  /**
+  * Added by olya - start
+  */
+  // clusters for read from file
+  uint32_t clusters_net0[nCN][3], clusters_net1[nCN][6], clusters_netLR[2 * nCN],
+    clusters_net2[nCN][14], clusters_net2LAN[nCN][7][nLANClients],
+    clusters_net3[nCN][9], clusters_net3LAN[nCN][5][nLANClients];
+
+  boost_graph_t g;
+
+  boost::dynamic_properties dp;
+
+  boost::property_map<boost_graph_t, boost::vertex_name_t>::type name =
+  boost::get(boost::vertex_name, g);
+  dp.property("node_id", name);
+
+  boost::property_map<boost_graph_t, boost::vertex_distance_t>::type color =
+  boost::get(boost::vertex_distance, g);
+  dp.property("label", color);
+
+  std::ifstream res_file("graph_cl.dot");
+  boost::read_graphviz(res_file, g, dp, "node_id");
+
+  size_t node_num = 0;
+
+  for (uint32_t z = 0; z < nCN; ++z)
+      {
+        for (int i = 0; i < 3; ++i) clusters_net0[z][i] = read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+        for (int i = 0; i < 6; ++i) clusters_net1[z][i] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+        for (int i = 0; i < 14; ++i) clusters_net2[z][i] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+
+        for (int i = 0; i < 7; ++i)
+          {
+            for (uint32_t j = 0; j < nLANClients; ++j) clusters_net2LAN[z][i][j] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+          }
+
+        for (int i = 0; i < 9; ++i) clusters_net3[z][i] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+
+        for (int i = 0; i < 5; ++i)
+          {
+            for (uint32_t j = 0; j < nLANClients; ++j) clusters_net3LAN[z][i][j] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+          }
+
+        clusters_netLR[2 * z] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+        clusters_netLR[2 * z + 1] =  read_from_file ? boost::get(boost::vertex_distance, g, node_num++) : z;
+      }
+
+  /**
+  * Added by olya - end
+  */
+
   PointToPointHelper p2p_2gb200ms, p2p_1gb5ms, p2p_100mb1ms;
   InternetStackHelper stack;
   Ipv4InterfaceContainer ifs, ifs0[nCN][3], ifs1[nCN][6], ifs2[nCN][14],
@@ -147,7 +221,7 @@ main (int argc, char *argv[])
       std::cout << "  SubNet [ 0";
       for (int i = 0; i < 3; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (z % systemCount);
+          Ptr<Node> node = CreateObject<Node> (clusters_net0[z][i]);
           nodes_net0[z][i].Add (node);
           stack.Install (nodes_net0[z][i]);
         }
@@ -163,7 +237,7 @@ main (int argc, char *argv[])
       std::cout << " 1";
       for (int i = 0; i < 6; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (z % systemCount);
+          Ptr<Node> node = CreateObject<Node> (clusters_net1[z][i]);
           nodes_net1[z][i].Add (node);
           stack.Install (nodes_net1[z][i]);
         }
@@ -195,7 +269,7 @@ main (int argc, char *argv[])
       std::cout << " 2";
       for (int i = 0; i < 14; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (z % systemCount);
+          Ptr<Node> node = CreateObject<Node> (clusters_net2[z][i]);
           nodes_net2[z][i].Add (node);
           stack.Install (nodes_net2[z][i]);
         }
@@ -226,7 +300,7 @@ main (int argc, char *argv[])
           address.SetBase (oss.str ().c_str (), "255.255.255.0");
           for (uint32_t j = 0; j < nLANClients; ++j)
             {
-              Ptr<Node> node = CreateObject<Node> (z % systemCount);
+              Ptr<Node> node = CreateObject<Node> (clusters_net2LAN[z][i][j]);
               nodes_net2LAN[z][i][j].Add (node);
               stack.Install (nodes_net2LAN[z][i][j]);
               nodes_net2LAN[z][i][j].Add (nodes_net2[z][i + 7].Get (0));
@@ -238,7 +312,7 @@ main (int argc, char *argv[])
       std::cout << " 3 ]" << std::endl;
       for (int i = 0; i < 9; ++i)
         {
-          Ptr<Node> node = CreateObject<Node> (z % systemCount);
+          Ptr<Node> node = CreateObject<Node> (clusters_net3[z][i]);
           nodes_net3[z][i].Add (node);
           stack.Install (nodes_net3[z][i]);
         }
@@ -264,7 +338,7 @@ main (int argc, char *argv[])
           address.SetBase (oss.str ().c_str (), "255.255.255.255");
           for (uint32_t j = 0; j < nLANClients; ++j)
             {
-              Ptr<Node> node = CreateObject<Node> (z % systemCount);
+              Ptr<Node> node = CreateObject<Node> (clusters_net3LAN[z][i][j]);
               nodes_net3LAN[z][i][j].Add (node);
               stack.Install (nodes_net3LAN[z][i][j]);
               nodes_net3LAN[z][i][j].Add (nodes_net3[z][i + 4].Get (0));
@@ -274,8 +348,8 @@ main (int argc, char *argv[])
         }
       std::cout << "  Connecting Subnets..." << std::endl;
       // Create Lone Routers (Node 4 & 5)
-      Ptr<Node> node1 = CreateObject<Node> (z % systemCount);
-      Ptr<Node> node2 = CreateObject<Node> (z % systemCount);
+      Ptr<Node> node1 = CreateObject<Node> (clusters_netLR[2 * z]);
+      Ptr<Node> node2 = CreateObject<Node> (clusters_netLR[2 * z + 1]);
       nodes_netLR[z].Add (node1);
       nodes_netLR[z].Add (node2);
       stack.Install (nodes_netLR[z]);
