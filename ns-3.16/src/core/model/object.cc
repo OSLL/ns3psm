@@ -31,7 +31,13 @@
 #include <cstdlib>
 #include <cstring>
 
-
+/**
+* Added by olya - start
+*/
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::Object)
+/**
+* Added by olya - end
+*/
 
 NS_LOG_COMPONENT_DEFINE ("Object");
 

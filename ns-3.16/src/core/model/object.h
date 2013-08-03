@@ -30,6 +30,15 @@
 #include "attribute-construction-list.h"
 #include "simple-ref-count.h"
 
+/**
+* Added by olya - start
+*/
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/export.hpp>
+#include <boost/serialization/assume_abstract.hpp>
+/**
+* Added by olya - end
+*/
 
 namespace ns3 {
 
@@ -161,6 +170,17 @@ private:
    * \sa DoStart
    */
   void Start (void);
+
+  /**
+  * Added by olya - start
+  */
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    std::cout << "serialize ns3::Object" << std::endl;
+  }
+  /**
+  * Added by olya - end
+  */
 
 protected:
   /**
@@ -437,6 +457,15 @@ Ptr<T> CreateObject (T1 a1, T2 a2, T3 a3, T4 a4, T5 a5, T6 a6, T7 a7)
 
 
 } // namespace ns3
+
+/**
+* Added by olya - start
+*/
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(ns3::Object)
+BOOST_CLASS_EXPORT_KEY(ns3::Object)
+/**
+* Added by olya - end
+*/
 
 #endif /* OBJECT_H */
 

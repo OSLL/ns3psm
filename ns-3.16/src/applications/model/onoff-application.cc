@@ -41,6 +41,14 @@
 #include "ns3/string.h"
 #include "ns3/pointer.h"
 
+/**
+* Added by olya - start
+*/
+//BOOST_CLASS_EXPORT_IMPLEMENT(ns3::OnOffApplication)
+/**
+* Added by olya - end
+*/
+
 NS_LOG_COMPONENT_DEFINE ("OnOffApplication");
 
 namespace ns3 {

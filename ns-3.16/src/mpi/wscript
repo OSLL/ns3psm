@@ -48,6 +48,11 @@ def build(bld):
         'model/mpi-interface.cc',
         'model/mpi-receiver.cc',
         ]
+        
+    mpi_test = bld.create_ns3_module_test_library('mpi')
+    mpi_test.source = [
+        'test/applications-serialization-test.cc',
+        ]
 
     headers = bld.new_task_gen(features=['ns3header'])
     headers.module = 'mpi'

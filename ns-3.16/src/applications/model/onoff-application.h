@@ -32,6 +32,14 @@
 #include "ns3/data-rate.h"
 #include "ns3/traced-callback.h"
 
+/**
+* Added by olya - start
+*/
+#include <boost/serialization/base_object.hpp>
+/**
+* Added by olya - end
+*/
+
 namespace ns3 {
 
 class Address;
@@ -116,6 +124,18 @@ public:
   */
   int64_t AssignStreams (int64_t stream);
 
+  /**
+  * Added by olya - start
+  */
+  template<class Archiver>
+  void serialize(Archiver& ar, const unsigned int) {
+    std::cout << "serialize ns3::OnOffApplication: " << GetInstanceTypeId ().GetName() << std::endl;
+    ar & boost::serialization::base_object< Application >(*this);
+  }
+  /**
+  * Added by olya - end
+  */
+
 protected:
   virtual void DoDispose (void);
 private:
@@ -165,5 +185,14 @@ private:
 };
 
 } // namespace ns3
+
+/**
+* Added by olya - start
+*/
+//BOOST_CLASS_EXPORT_KEY(ns3::OnOffApplication)
+BOOST_CLASS_TRACKING(ns3::OnOffApplication, boost::serialization::track_never)
+/**
+* Added by olya - end
+*/
 
 #endif /* ONOFF_APPLICATION_H */

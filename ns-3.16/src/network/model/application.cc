@@ -27,6 +27,14 @@
 #include "ns3/nstime.h"
 #include "ns3/simulator.h"
 
+/**
+* Added by olya - start
+*/
+//BOOST_CLASS_EXPORT_IMPLEMENT(ns3::Application)
+/**
+* Added by olya - end
+*/
+
 NS_LOG_COMPONENT_DEFINE ("Application");
 
 namespace ns3 {
