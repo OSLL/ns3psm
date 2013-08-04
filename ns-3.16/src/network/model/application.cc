@@ -30,7 +30,7 @@
 /**
 * Added by olya - start
 */
-//BOOST_CLASS_EXPORT_IMPLEMENT(ns3::Application)
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::Application)
 /**
 * Added by olya - end
 */

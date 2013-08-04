@@ -132,6 +132,11 @@ public:
     std::cout << "serialize ns3::OnOffApplication: " << GetInstanceTypeId ().GetName() << std::endl;
     ar & boost::serialization::base_object< Application >(*this);
   }
+
+  virtual void RegistrateType(boost::archive::text_oarchive& ar) {
+    std::cout << "registration type ns3::OnOffApplication: " << GetInstanceTypeId ().GetName() << std::endl;
+    ar.register_type(new OnOffApplication());
+  }
   /**
   * Added by olya - end
   */
@@ -189,7 +194,7 @@ private:
 /**
 * Added by olya - start
 */
-//BOOST_CLASS_EXPORT_KEY(ns3::OnOffApplication)
+BOOST_CLASS_EXPORT_KEY(ns3::OnOffApplication)
 BOOST_CLASS_TRACKING(ns3::OnOffApplication, boost::serialization::track_never)
 /**
 * Added by olya - end

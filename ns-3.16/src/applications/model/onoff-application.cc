@@ -44,7 +44,7 @@
 /**
 * Added by olya - start
 */
-//BOOST_CLASS_EXPORT_IMPLEMENT(ns3::OnOffApplication)
+BOOST_CLASS_EXPORT_IMPLEMENT(ns3::OnOffApplication)
 /**
 * Added by olya - end
 */

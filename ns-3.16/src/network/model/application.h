@@ -34,6 +34,9 @@
 #include <boost/serialization/export.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 #include <boost/serialization/tracking.hpp>
+
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 /**
 * Added by olya - end
 */
@@ -119,6 +122,11 @@ public:
   void serialize(Archiver& ar, const unsigned int) {
     std::cout << "serialize ns3::Application: " << this->GetInstanceTypeId ().GetName() << std::endl;
   }
+
+  virtual void RegistrateType(boost::archive::text_oarchive& ar) {
+    std::cout << "registration type ns3::Application: " << GetInstanceTypeId ().GetName() << std::endl;
+    ar.register_type(new Application());
+  }
   /**
   * Added by olya - end
   */
@@ -157,9 +165,9 @@ protected:
 /**
 * Added by olya - start
 */
-//BOOST_SERIALIZATION_ASSUME_ABSTRACT(ns3::Application)
-//BOOST_CLASS_EXPORT_KEY(ns3::Application)
-//BOOST_CLASS_TRACKING(ns3::Application, boost::serialization::track_never)
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(ns3::Application)
+BOOST_CLASS_EXPORT_KEY(ns3::Application)
+BOOST_CLASS_TRACKING(ns3::Application, boost::serialization::track_never)
 /**
 * Added by olya - end
 */

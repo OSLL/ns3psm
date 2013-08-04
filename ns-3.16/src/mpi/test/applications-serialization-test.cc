@@ -19,7 +19,6 @@
 #include <boost/serialization/nvp.hpp>
 
 #include "ns3/object-factory.h"
-
 using namespace ns3;
 
 /**
@@ -61,12 +60,13 @@ void ApplicationsSerializationTestCase::DoRun (void)
 	std::cout << app.GetTypeId().GetName() << std::endl;
 	oa << app;
 
+	app_p->RegistrateType(oa);
+
 	std::cout << app_p->GetInstanceTypeId().GetName() << std::endl;
 
     Application* app_pp = GetPointer(app_p);
     oa << app_pp;
 }
-
 
 class ApplicationsSerializationTestSuite : public TestSuite
 {
@@ -81,7 +81,5 @@ ApplicationsSerializationTestSuite::ApplicationsSerializationTestSuite ()
 }
 
 static ApplicationsSerializationTestSuite applicationsSerializationTestSuite;
-
-BOOST_CLASS_EXPORT(ns3::OnOffApplication)
 
 
