@@ -27,6 +27,10 @@
 #include "ns3/wifi-net-device.h"
 #include "ns3/mesh-wifi-interface-mac.h"
 
+/*experimental hack */
+#include <iostream>
+#include "ns3/ipv4.h"
+
 NS_LOG_COMPONENT_DEFINE ("MeshPointDevice");
 
 namespace ns3 {
@@ -93,6 +97,20 @@ void
 MeshPointDevice::ReceiveFromDevice (Ptr<NetDevice> incomingPort, Ptr<const Packet> packet, uint16_t protocol,
                                     Address const &src, Address const &dst, PacketType packetType)
 {
+  /* HACK */
+  Ptr<Ipv4> ipv4 = m_node->GetObject<Ipv4> ();
+
+  const char* packetTypes[4] = {
+     "HOST PACKET",
+     "BROADCAST PACKET",
+     "MULTICAST PACKET",
+     "OTHERHOST PACKET"
+  };
+  std::cout << "My LOG: " << ipv4->GetAddress(1, 0).GetLocal()
+            << " received " << packetTypes[packetType - 1]
+            << " from " << Mac48Address::ConvertFrom(src) << std::endl;
+  /*------------------------------*/
+
   NS_LOG_FUNCTION_NOARGS ();
   NS_LOG_DEBUG ("UID is " << packet->GetUid ());
   const Mac48Address src48 = Mac48Address::ConvertFrom (src);
@@ -249,7 +267,15 @@ MeshPointDevice::IsBridge () const
 bool
 MeshPointDevice::Send (Ptr<Packet> packet, const Address& dest, uint16_t protocolNumber)
 {
-  const Mac48Address dst48 = Mac48Address::ConvertFrom (dest);
+ /* HACK */
+  Ptr<Ipv4> ipv4 = m_node->GetObject<Ipv4> ();
+
+  std::cout << "My LOG: " << ipv4->GetAddress(1, 0).GetLocal()
+            << " send packet to " << Mac48Address::ConvertFrom(dest) << std::endl;
+  /*------------------------------*/
+
+
+ const Mac48Address dst48 = Mac48Address::ConvertFrom (dest);
   return m_routingProtocol->RequestRoute (m_ifIndex, m_address, dst48, packet, protocolNumber, MakeCallback (
                                             &MeshPointDevice::DoSend, this));
 }

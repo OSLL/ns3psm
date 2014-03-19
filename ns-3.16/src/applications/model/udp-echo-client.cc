@@ -29,6 +29,9 @@
 #include "ns3/trace-source-accessor.h"
 #include "udp-echo-client.h"
 
+/* HACK   */
+#include "ns3/ipv4.h"
+/*---------------*/
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("UdpEchoClientApplication");
@@ -313,7 +316,14 @@ UdpEchoClient::Send (void)
 
   if (Ipv4Address::IsMatchingType (m_peerAddress))
     {
-      NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s client sent " << m_size << " bytes to " <<
+            /* HACK */
+      Ptr<Ipv4> ipv4 = GetNode ()->GetObject<Ipv4> ();
+
+      std::cout << "My LOG: " << " echo client " << ipv4->GetAddress(1, 0).GetLocal()
+                << " sent " << m_size << " bytes to "
+                << Ipv4Address::ConvertFrom (m_peerAddress) << std::endl;
+      /*---------------------------------*/
+ NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s client sent " << m_size << " bytes to " <<
                    Ipv4Address::ConvertFrom (m_peerAddress) << " port " << m_peerPort);
     }
   else if (Ipv6Address::IsMatchingType (m_peerAddress))
@@ -338,7 +348,14 @@ UdpEchoClient::HandleRead (Ptr<Socket> socket)
     {
       if (InetSocketAddress::IsMatchingType (from))
         {
-          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s client received " << packet->GetSize () << " bytes from " <<
+                 /* HACK */
+          Ptr<Ipv4> ipv4 = GetNode ()->GetObject<Ipv4> ();
+
+          std::cout << "My LOG: " << " echo clisen " << ipv4->GetAddress(1, 0).GetLocal()
+                    << " received " << packet->GetSize () << " bytes from "
+                    << InetSocketAddress::ConvertFrom (from).GetIpv4 () << std::endl;
+          /*---------------------------------*/
+    NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s client received " << packet->GetSize () << " bytes from " <<
                        InetSocketAddress::ConvertFrom (from).GetIpv4 () << " port " <<
                        InetSocketAddress::ConvertFrom (from).GetPort ());
         }

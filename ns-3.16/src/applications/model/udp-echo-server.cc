@@ -31,7 +31,11 @@
 #include "ns3/uinteger.h"
 
 #include "udp-echo-server.h"
+/* HACK   */
 
+#include "ns3/ipv4.h"
+
+/*-----------------*/
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("UdpEchoServerApplication");
@@ -149,7 +153,14 @@ UdpEchoServer::HandleRead (Ptr<Socket> socket)
     {
       if (InetSocketAddress::IsMatchingType (from))
         {
-          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server received " << packet->GetSize () << " bytes from " <<
+              /* HACK */
+          Ptr<Ipv4> ipv4 = GetNode ()->GetObject<Ipv4> ();
+
+          std::cout << "My LOG: " << " echo server " << ipv4->GetAddress(1, 0).GetLocal()
+                    << " received " << packet->GetSize () << " bytes from "
+                    << InetSocketAddress::ConvertFrom (from).GetIpv4 () << std::endl;
+          /*---------------------------------*/
+       NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server received " << packet->GetSize () << " bytes from " <<
                        InetSocketAddress::ConvertFrom (from).GetIpv4 () << " port " <<
                        InetSocketAddress::ConvertFrom (from).GetPort ());
         }
@@ -168,7 +179,14 @@ UdpEchoServer::HandleRead (Ptr<Socket> socket)
 
       if (InetSocketAddress::IsMatchingType (from))
         {
-          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server sent " << packet->GetSize () << " bytes to " <<
+              /* HACK */
+          Ptr<Ipv4> ipv4 = GetNode ()->GetObject<Ipv4> ();
+
+          std::cout << "My LOG: " << " echo server " << ipv4->GetAddress(1, 0).GetLocal()
+                    << " sent " << packet->GetSize () << " bytes to "
+                    << InetSocketAddress::ConvertFrom (from).GetIpv4 () << std::endl;
+          /*---------------------------------*/
+       NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server sent " << packet->GetSize () << " bytes to " <<
                        InetSocketAddress::ConvertFrom (from).GetIpv4 () << " port " <<
                        InetSocketAddress::ConvertFrom (from).GetPort ());
         }
